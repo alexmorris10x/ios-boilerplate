@@ -173,9 +173,9 @@ struct ExampleDetailView: View {
 
     private func actionsSection(_ item: ExampleItem) -> some View {
         VStack(spacing: UIConstants.Spacing.md) {
-            SecondaryButton(title: "Edit Item", icon: "pencil") {
+            SecondaryButton(title: "Edit Item", action: {
                 showingEditSheet = true
-            }
+            }, icon: "pencil")
 
             Button(role: .destructive) {
                 showingDeleteConfirmation = true

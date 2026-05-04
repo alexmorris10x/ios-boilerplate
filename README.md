@@ -24,12 +24,15 @@ Every pattern in this boilerplate exists for a reason. This documentation explai
 | UI Components | Composable SwiftUI views | Reusable, consistent, maintainable |
 | Testing | Swift Testing + mocks | Apple's modern testing framework |
 | Code Quality | SwiftLint + SwiftFormat | Consistent style, catch bugs early |
+| Project Generation | XcodeGen | Buildable project without committing `.xcodeproj` churn |
+| Production SOP | Checklist + provider-neutral services | Repeatable launch readiness across apps |
 
 ## Requirements
 
 - **iOS 17.0+** - Required for `@Observable`, modern SwiftData, and NavigationStack improvements
 - **Xcode 15.0+** - Required for Swift 5.9 and iOS 17 SDK
 - **Swift 5.9+** - Required for `@Observable` macro
+- **XcodeGen** - Required to generate `Boilerplate.xcodeproj` from `project.yml`
 
 > **Why iOS 17?** The `@Observable` macro (iOS 17+) dramatically simplifies state management compared to `ObservableObject` + `@Published`. If you need iOS 16 support, you can convert ViewModels to use `ObservableObject`, but we recommend targeting iOS 17+ for new projects.
 
@@ -40,6 +43,9 @@ Every pattern in this boilerplate exists for a reason. This documentation explai
 git clone https://github.com/10x-oss/ios-boilerplate.git
 cd ios-boilerplate
 
+# Generate the Xcode project
+xcodegen generate
+
 # Open in Xcode
 open Boilerplate.xcodeproj
 ```
@@ -47,7 +53,9 @@ open Boilerplate.xcodeproj
 Then:
 1. Update bundle identifier in project settings
 2. Configure API URLs in `AppEnvironment.swift`
-3. Build and run (`⌘R`)
+3. Replace support/legal/App Store IDs in `AppConstants.swift`
+4. Review [docs/PRODUCTION-READINESS-CHECKLIST.md](docs/PRODUCTION-READINESS-CHECKLIST.md)
+5. Build and run (`⌘R`)
 
 ## Documentation
 
@@ -57,6 +65,7 @@ Then:
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Deep dive into architectural decisions |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [docs/PRODUCTION-READINESS-CHECKLIST.md](docs/PRODUCTION-READINESS-CHECKLIST.md) | SOP for app launch readiness |
 | [docs/XCODE-CLOUD-WORKFLOW.md](docs/XCODE-CLOUD-WORKFLOW.md) | CI/versioning runbook for Xcode Cloud |
 
 ---
@@ -72,8 +81,31 @@ ios-boilerplate/
 │   ├── Features/               # Feature modules (auth, settings, etc.)
 │   └── Resources/              # Assets, localization, Info.plist
 ├── BoilerplateTests/           # Unit tests
-└── BoilerplateUITests/         # UI tests
+├── BoilerplateUITests/         # UI tests
+├── docs/                       # SOPs and release runbooks
+└── project.yml                 # XcodeGen project definition
 ```
+
+---
+
+## Production-Ready App Shell
+
+This boilerplate includes the repeatable production surfaces most iOS apps need before launch:
+
+- **Onboarding**: Dedicated first-run feature with `onboarding_started` and `onboarding_completed` events.
+- **Monetization**: Provider-neutral `PaywallService`, `PaywallView`, restore purchases, subscription status, and manage-subscription link.
+- **Reviews**: `ReviewPromptService` tracks eligibility and lets the SwiftUI host call Apple's system review prompt after success moments.
+- **Settings and trust**: Support, legal links, app version/build, subscription tools, review link, debug console, and account deletion placeholder.
+- **Privacy**: `PrivacyInfo.xcprivacy` starts with the boilerplate's UserDefaults required-reason API declaration.
+
+Recommended provider defaults for derived apps:
+
+| Need | Recommended Default | Notes |
+|------|---------------------|-------|
+| Subscriptions and entitlements | RevenueCat | Keep it as the subscription source of truth |
+| Paywall placement experiments | Superwall | Optional; add when paywall iteration speed matters |
+| Product analytics and feature flags | PostHog | Keep event names stable across apps |
+| Crash reporting | Sentry or Firebase Crashlytics | Add before public launch and upload dSYMs from CI |
 
 ### Why This Structure?
 

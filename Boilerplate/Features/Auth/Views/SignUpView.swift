@@ -64,7 +64,7 @@ struct SignUpView: View {
         VStack(spacing: UIConstants.Spacing.sm) {
             Image(systemName: "person.badge.plus.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
 
             Text("Join Us")
                 .font(AppTheme.Typography.title)

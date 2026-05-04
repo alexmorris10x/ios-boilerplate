@@ -153,11 +153,62 @@ extension AnalyticsEvent {
         ])
     }
 
+    // Onboarding events
+    static let onboardingStarted = AnalyticsEvent(name: "onboarding_started")
+    static let onboardingCompleted = AnalyticsEvent(name: "onboarding_completed")
+
+    static func firstValueAction(_ actionName: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "first_value_action", properties: ["action_name": actionName])
+    }
+
     // Feature events
     static func featureUsed(_ featureName: String, properties: [String: Any] = [:]) -> AnalyticsEvent {
         var props = properties
         props["feature_name"] = featureName
         return AnalyticsEvent(name: "feature_used", properties: props)
+    }
+
+    // Monetization events
+    static func paywallViewed(placement: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "paywall_viewed", properties: ["placement": placement])
+    }
+
+    static func purchaseStarted(productId: String, placement: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "purchase_started", properties: [
+            "product_id": productId,
+            "placement": placement
+        ])
+    }
+
+    static func purchaseCompleted(productId: String, placement: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "purchase_completed", properties: [
+            "product_id": productId,
+            "placement": placement
+        ])
+    }
+
+    static func purchaseFailed(productId: String, placement: String, reason: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "purchase_failed", properties: [
+            "product_id": productId,
+            "placement": placement,
+            "reason": reason
+        ])
+    }
+
+    static let restorePurchasesStarted = AnalyticsEvent(name: "restore_purchases_started")
+    static let restorePurchasesCompleted = AnalyticsEvent(name: "restore_purchases_completed")
+
+    static func restorePurchasesFailed(reason: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "restore_purchases_failed", properties: ["reason": reason])
+    }
+
+    // Review prompt events
+    static func reviewPromptEligible(reason: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "review_prompt_eligible", properties: ["reason": reason])
+    }
+
+    static func reviewPromptRequested(reason: String) -> AnalyticsEvent {
+        AnalyticsEvent(name: "review_prompt_requested", properties: ["reason": reason])
     }
 
     // Item events

@@ -9,6 +9,23 @@ if [ -z "${CI_PRIMARY_REPOSITORY_PATH:-}" ]; then
   exit 1
 fi
 
+cd "$CI_PRIMARY_REPOSITORY_PATH"
+
+if [ -f "project.yml" ]; then
+  if ! command -v xcodegen >/dev/null 2>&1; then
+    if command -v brew >/dev/null 2>&1; then
+      echo "[CI][Project] XcodeGen missing; installing with Homebrew"
+      brew install xcodegen
+    else
+      echo "[CI][Project] ERROR: project.yml found but xcodegen is not installed and Homebrew is unavailable"
+      exit 1
+    fi
+  fi
+
+  echo "[CI][Project] Generating Xcode project from project.yml"
+  xcodegen generate
+fi
+
 PBXPROJ=""
 if [ -n "${IOS_XCODEPROJ_PATH:-}" ] && [ -f "${CI_PRIMARY_REPOSITORY_PATH}/${IOS_XCODEPROJ_PATH}/project.pbxproj" ]; then
   PBXPROJ="${CI_PRIMARY_REPOSITORY_PATH}/${IOS_XCODEPROJ_PATH}/project.pbxproj"

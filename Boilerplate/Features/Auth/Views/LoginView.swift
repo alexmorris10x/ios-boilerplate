@@ -61,7 +61,7 @@ struct LoginView: View {
         VStack(spacing: UIConstants.Spacing.sm) {
             Image(systemName: "person.circle.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
 
             Text("Welcome Back")
                 .font(AppTheme.Typography.title)

@@ -67,15 +67,6 @@ enum LoadingState<T: Equatable>: Equatable {
     }
 }
 
-// MARK: - Convenience Extensions
-
-extension LoadingState where T == Void {
-    /// Success state for void operations
-    static var success: LoadingState<Void> {
-        .loaded(())
-    }
-}
-
 extension LoadingState {
     /// Map the loaded value to a new type
     func map<U: Equatable>(_ transform: (T) -> U) -> LoadingState<U> {

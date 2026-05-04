@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import StoreKit
 
 @main
 struct BoilerplateApp: App {
@@ -9,11 +10,16 @@ struct BoilerplateApp: App {
     private let apiClient = APIClient()
     private let authService: AuthService
     private let analyticsService = AnalyticsService()
+    private let paywallService: PaywallService
+    private let reviewPromptService: ReviewPromptService
 
     // MARK: - Initialization
 
     init() {
         authService = AuthService(apiClient: apiClient)
+        paywallService = PaywallService(analyticsService: analyticsService)
+        reviewPromptService = ReviewPromptService(analyticsService: analyticsService)
+        configureUITestState()
         configureAppearance()
     }
 
@@ -26,6 +32,8 @@ struct BoilerplateApp: App {
                 .environment(apiClient)
                 .environment(authService)
                 .environment(analyticsService)
+                .environment(paywallService)
+                .environment(reviewPromptService)
         }
         .modelContainer(SwiftDataContainer.shared)
     }
@@ -38,6 +46,13 @@ struct BoilerplateApp: App {
         Logger.shared.app("App launched in \(AppEnvironment.current.rawValue) mode")
         #endif
     }
+
+    private func configureUITestState() {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-resetOnboarding") else { return }
+        UserDefaultsWrapper.hasCompletedOnboarding = false
+        #endif
+    }
 }
 
 // MARK: - Root View
@@ -45,6 +60,9 @@ struct BoilerplateApp: App {
 struct RootView: View {
     @Environment(Router.self) private var router
     @Environment(AuthService.self) private var authService
+    @Environment(ReviewPromptService.self) private var reviewPromptService
+    @Environment(\.requestReview) private var requestReview
+    @State private var hasCompletedOnboarding = UserDefaultsWrapper.hasCompletedOnboarding
 
     var body: some View {
         @Bindable var router = router
@@ -53,10 +71,12 @@ struct RootView: View {
             Group {
                 if authService.isAuthenticated {
                     HomeView()
-                } else if UserDefaultsWrapper.hasCompletedOnboarding {
+                } else if hasCompletedOnboarding {
                     LoginView()
                 } else {
-                    OnboardingView()
+                    OnboardingView {
+                        hasCompletedOnboarding = true
+                    }
                 }
             }
             .navigationDestination(for: Route.self) { route in
@@ -65,6 +85,27 @@ struct RootView: View {
         }
         .sheet(item: $router.presentedSheet) { sheet in
             sheetView(for: sheet)
+        }
+        .alert(item: $router.presentedAlert) { alert in
+            if let secondaryButton = alert.secondaryButton {
+                Alert(
+                    title: Text(alert.title),
+                    message: alert.message.map(Text.init),
+                    primaryButton: alertButton(alert.primaryButton),
+                    secondaryButton: alertButton(secondaryButton)
+                )
+            } else {
+                Alert(
+                    title: Text(alert.title),
+                    message: alert.message.map(Text.init),
+                    dismissButton: alertButton(alert.primaryButton)
+                )
+            }
+        }
+        .onChange(of: reviewPromptService.pendingRequestID) { _, requestID in
+            guard requestID != nil else { return }
+            requestReview()
+            reviewPromptService.markPromptAttempted()
         }
     }
 
@@ -83,6 +124,8 @@ struct RootView: View {
             SettingsView()
         case .profile:
             ProfileView()
+        case .paywall:
+            PaywallView(placement: "manual")
         }
     }
 
@@ -95,18 +138,39 @@ struct RootView: View {
             SignUpView()
         }
     }
+
+    private func alertButton(_ button: AlertItem.AlertButton) -> Alert.Button {
+        switch button.role {
+        case .cancel:
+            return .cancel(Text(button.title), action: button.action)
+        case .destructive:
+            return .destructive(Text(button.title), action: button.action)
+        case nil:
+            return .default(Text(button.title), action: button.action)
+        }
+    }
 }
 
 // MARK: - Home View (Placeholder)
 
 struct HomeView: View {
     @Environment(Router.self) private var router
+    @Environment(AnalyticsService.self) private var analyticsService
+    @Environment(ReviewPromptService.self) private var reviewPromptService
 
     var body: some View {
         List {
             Section("Features") {
                 Button("Example Feature") {
+                    analyticsService.track(.featureUsed("example_feature"))
+                    reviewPromptService.recordSuccessfulAction(reason: "opened_example_feature")
                     router.navigate(to: .exampleList)
+                }
+            }
+
+            Section("Monetization") {
+                Button("Paywall Example") {
+                    router.navigate(to: .paywall)
                 }
             }
 
@@ -117,38 +181,6 @@ struct HomeView: View {
             }
         }
         .navigationTitle("Home")
-    }
-}
-
-// MARK: - Onboarding View (Placeholder)
-
-struct OnboardingView: View {
-    var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Image(systemName: "star.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(.accent)
-
-            Text("Welcome to Boilerplate")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-
-            Text("Your starting point for building great iOS apps")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            Spacer()
-
-            PrimaryButton(title: "Get Started") {
-                UserDefaultsWrapper.hasCompletedOnboarding = true
-            }
-            .padding(.horizontal)
-        }
-        .padding()
     }
 }
 

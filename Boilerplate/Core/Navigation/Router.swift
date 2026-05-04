@@ -172,6 +172,10 @@ extension Router {
             navigate(to: .profile)
             return true
 
+        case "paywall":
+            navigate(to: .paywall)
+            return true
+
         default:
             Logger.shared.app("Unknown deep link host: \(host)", level: .warning)
             return false

@@ -80,9 +80,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- XcodeGen `project.yml` as the committed source of truth for generating `Boilerplate.xcodeproj`.
+- Production-readiness SOP checklist covering onboarding, monetization, reviews, analytics, crash monitoring, privacy, QA, release, and post-launch operations.
+- Provider-neutral `PaywallService`, `PaywallView`, and `SubscriptionStatusView` scaffolding.
+- `ReviewPromptService` for testable App Store review prompt eligibility.
+- Dedicated onboarding feature with standard analytics events.
+- Privacy manifest for the boilerplate's current required-reason API usage.
+- Unit tests for production SOP analytics events, review prompt eligibility, and not-configured paywall behavior.
+
+### Changed
+
+- Xcode Cloud post-clone script now generates the Xcode project before stamping build numbers.
+- Settings now acts as the production trust surface with subscription, restore, review, support, legal, version, and delete-account placeholders.
+
 ### Planned
 
-- In-app purchases integration example
 - Push notifications setup
 - Localization support
 - Accessibility improvements

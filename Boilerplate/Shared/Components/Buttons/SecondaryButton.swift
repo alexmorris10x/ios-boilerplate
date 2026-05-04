@@ -68,13 +68,13 @@ struct SecondaryButton: View {
             print("Tapped")
         }
 
-        SecondaryButton(title: "Add Item", icon: "plus") {
+        SecondaryButton(title: "Add Item", action: {
             print("Tapped")
-        }
+        }, icon: "plus")
 
-        SecondaryButton(title: "Loading", isLoading: true) {
+        SecondaryButton(title: "Loading", action: {
             print("Tapped")
-        }
+        }, isLoading: true)
 
         SecondaryButton(title: "Disabled") {
             print("Tapped")

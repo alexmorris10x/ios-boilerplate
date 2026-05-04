@@ -129,6 +129,9 @@ enum AppConstants {
         /// Support email
         static let email = "support@example.com"
 
+        /// Replace this with the App Store app ID before enabling the public review link.
+        static let appStoreID = "0000000000"
+
         /// Help URL
         static let helpURL = URL(string: "https://example.com/help")!
 
@@ -137,5 +140,14 @@ enum AppConstants {
 
         /// Terms of service URL
         static let termsURL = URL(string: "https://example.com/terms")!
+
+        /// Support email URL
+        static let contactURL = URL(string: "mailto:\(email)")!
+
+        /// Opens the App Store write-review flow once `appStoreID` is replaced.
+        static let reviewURL = URL(string: "itms-apps://itunes.apple.com/app/id\(appStoreID)?action=write-review")!
+
+        /// Apple's subscription management screen.
+        static let manageSubscriptionsURL = URL(string: "https://apps.apple.com/account/subscriptions")!
     }
 }

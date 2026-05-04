@@ -11,6 +11,7 @@ enum Route: Hashable {
     case exampleForm(item: ExampleItem?)
     case settings
     case profile
+    case paywall
 
     // MARK: - Hashable
 
@@ -30,6 +31,8 @@ enum Route: Hashable {
             hasher.combine("settings")
         case .profile:
             hasher.combine("profile")
+        case .paywall:
+            hasher.combine("paywall")
         }
     }
 
@@ -38,7 +41,8 @@ enum Route: Hashable {
         case (.home, .home),
              (.exampleList, .exampleList),
              (.settings, .settings),
-             (.profile, .profile):
+             (.profile, .profile),
+             (.paywall, .paywall):
             return true
         case (.exampleDetail(let lhsId), .exampleDetail(let rhsId)):
             return lhsId == rhsId

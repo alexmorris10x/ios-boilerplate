@@ -6,16 +6,17 @@ This document provides an in-depth explanation of the architectural decisions in
 
 1. [Architectural Philosophy](#architectural-philosophy)
 2. [MVVM Pattern](#mvvm-pattern)
-3. [Folder Structure](#folder-structure)
-4. [Dependency Injection](#dependency-injection)
-5. [Navigation Architecture](#navigation-architecture)
-6. [Networking Layer](#networking-layer)
-7. [Data Persistence](#data-persistence)
-8. [State Management](#state-management)
-9. [Error Handling](#error-handling)
-10. [Testing Strategy](#testing-strategy)
-11. [Code Organization](#code-organization)
-12. [Decision Records](#decision-records)
+3. [Production App SOP](#production-app-sop)
+4. [Folder Structure](#folder-structure)
+5. [Dependency Injection](#dependency-injection)
+6. [Navigation Architecture](#navigation-architecture)
+7. [Networking Layer](#networking-layer)
+8. [Data Persistence](#data-persistence)
+9. [State Management](#state-management)
+10. [Error Handling](#error-handling)
+11. [Testing Strategy](#testing-strategy)
+12. [Code Organization](#code-organization)
+13. [Decision Records](#decision-records)
 
 ---
 
@@ -40,6 +41,8 @@ This document provides an in-depth explanation of the architectural decisions in
 **Progressive**: This boilerplate is a starting point, not a final architecture. Add what you need, when you need it.
 
 **Apple-first**: Third-party libraries add maintenance burden and can break with OS updates. SwiftData, async/await, and NavigationStack are battle-tested.
+
+**Provider-neutral growth plumbing**: Production apps need monetization, reviews, analytics, support, privacy, and release operations, but the boilerplate should not force every app to ship the same SDK stack. Shared services define the boundaries; derived apps choose RevenueCat, PostHog, Sentry, Superwall, or alternatives when the product needs them.
 
 ---
 
@@ -148,6 +151,33 @@ viewModel.loadItems()  // Goes through proper flow
 ```
 
 This ensures all state changes go through methods where you can add logging, validation, or side effects.
+
+---
+
+## Production App SOP
+
+The full launch checklist lives in [docs/PRODUCTION-READINESS-CHECKLIST.md](docs/PRODUCTION-READINESS-CHECKLIST.md). Architecturally, the boilerplate provides stable seams for the surfaces every production app should decide on before App Store submission:
+
+| Surface | Boilerplate Boundary | Default Behavior |
+|---------|----------------------|------------------|
+| Onboarding | `Features/Onboarding/Views/OnboardingView.swift` | Tracks start/completion and then marks onboarding complete |
+| Monetization | `PaywallService` + paywall/subscription views | Shows not-configured states until a purchase provider is connected |
+| Reviews | `ReviewPromptService` + root `requestReview` integration | Prompts only after local eligibility rules pass |
+| Analytics | `AnalyticsService` + `AnalyticsEvent` names | Logs provider-neutral events for PostHog or another backend |
+| Settings and trust | `SettingsView` | Centralizes support, legal, subscription, review, version, and account actions |
+| Privacy | `PrivacyInfo.xcprivacy` | Declares current UserDefaults required-reason API usage |
+
+### Monetization Boundary
+
+`PaywallService` is intentionally provider-neutral. For a subscription app, keep the public interface and replace the internals with RevenueCat or StoreKit calls. If the app needs remote paywall placement and experimentation, add Superwall at the placement layer while keeping RevenueCat or StoreKit as the entitlement source of truth.
+
+### Review Prompt Boundary
+
+`ReviewPromptService` does not call StoreKit directly. It records success moments and exposes a pending prompt request. `RootView` owns Apple's SwiftUI `requestReview` environment action, which keeps eligibility logic testable and prevents custom review prompts.
+
+### Project Generation
+
+`project.yml` is the source of truth for Xcode project settings. Generated `.xcodeproj` files are local artifacts and should stay untracked. CI runs `xcodegen generate` before stamping build numbers or invoking Xcode.
 
 ---
 

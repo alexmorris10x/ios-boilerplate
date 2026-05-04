@@ -27,6 +27,9 @@ struct SettingsView: View {
                 // Preferences section
                 preferencesSection(viewModel)
 
+                // Subscription section
+                SubscriptionStatusView()
+
                 // Appearance section
                 appearanceSection(viewModel)
 
@@ -41,8 +44,10 @@ struct SettingsView: View {
                     debugSection(viewModel)
                 }
 
-                // Sign out
-                signOutSection
+                if authService.isAuthenticated {
+                    deleteAccountSection
+                    signOutSection
+                }
             }
         }
         .navigationTitle("Settings")
@@ -113,7 +118,7 @@ struct SettingsView: View {
 
                             Text(user.initials)
                                 .font(.headline)
-                                .foregroundStyle(.accentColor)
+                                .foregroundStyle(Color.accentColor)
                         }
                         .frame(width: UIConstants.AvatarSize.medium, height: UIConstants.AvatarSize.medium)
 
@@ -171,10 +176,12 @@ struct SettingsView: View {
                 Label("Help Center", systemImage: "questionmark.circle")
             }
 
-            Button {
-                // TODO: Open email composer
-            } label: {
+            Link(destination: AppConstants.Support.contactURL) {
                 Label("Contact Support", systemImage: "envelope")
+            }
+
+            Link(destination: AppConstants.Support.reviewURL) {
+                Label("Rate App", systemImage: "star")
             }
 
             Link(destination: AppConstants.Support.privacyURL) {
@@ -196,6 +203,21 @@ struct SettingsView: View {
                 showingClearCacheConfirmation = true
             } label: {
                 Label("Clear Cache", systemImage: "trash")
+            }
+        }
+    }
+
+    private var deleteAccountSection: some View {
+        Section {
+            Button(role: .destructive) {
+                router.showAlert(AlertItem(
+                    title: "Delete Account",
+                    message: "Connect this action to your backend account deletion endpoint before shipping.",
+                    primaryButton: .default("OK"),
+                    secondaryButton: nil
+                ))
+            } label: {
+                Label("Delete Account", systemImage: "person.crop.circle.badge.xmark")
             }
         }
     }
@@ -245,5 +267,7 @@ struct SettingsView: View {
     }
     .environment(AuthService(apiClient: APIClient()))
     .environment(AnalyticsService())
+    .environment(PaywallService())
+    .environment(ReviewPromptService())
     .environment(Router.shared)
 }
