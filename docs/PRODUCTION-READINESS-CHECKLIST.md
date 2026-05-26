@@ -13,9 +13,12 @@ Use this as the shipping SOP for every app created from this boilerplate. The ap
 ## 2. Monetization
 
 - Paid apps use a single purchase boundary through `PaywallService`.
-- Subscription apps expose paywall, restore purchases, subscription status, and manage subscription.
+- Paid apps expose paywall, restore purchases, plan/access status, and manage subscription when relevant.
 - Paywall copy clearly states price, billing period, trial terms, and renewal behavior.
 - RevenueCat is the recommended default subscription backend for derived apps.
+- RevenueCat Test Store is used only for Debug/simulator testing; Release builds use the real platform app key.
+- Test purchase reset/replay controls live in a separate debug-only section and never ship to App Review.
+- Real App Store products are verified outside `MISSING_METADATA` before submission.
 - Superwall is optional when remote paywall placement and experimentation become a growth bottleneck.
 - StoreKit sandbox purchase, restore, cancellation, and expired entitlement states are tested before release.
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings-ready subscription status surface.
+/// Settings-ready paid access surface.
 struct SubscriptionStatusView: View {
     @Environment(PaywallService.self) private var paywallService
 
@@ -8,8 +8,9 @@ struct SubscriptionStatusView: View {
     @State private var message: String?
 
     var body: some View {
-        Section("Subscription") {
-            LabeledContent("Status", value: paywallService.subscriptionStatus.displayName)
+        Section("Plan") {
+            LabeledContent("Status", value: paywallService.subscriptionStatus.planName)
+            LabeledContent("Access", value: paywallService.subscriptionStatus.accessDescription)
 
             Link(destination: paywallService.manageSubscriptionURL) {
                 Label("Manage Subscription", systemImage: "creditcard")
@@ -32,6 +33,14 @@ struct SubscriptionStatusView: View {
                     .foregroundStyle(.secondary)
             }
         }
+
+#if DEBUG
+        Section("Developer Testing") {
+            Text("Add provider-specific test reset controls here, such as rotating a RevenueCat Test Store customer. This section must remain debug-only.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+#endif
     }
 
     private func restore() {

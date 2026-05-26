@@ -65,6 +65,7 @@ Then:
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Deep dive into architectural decisions |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [docs/MONETIZATION-FLOW.md](docs/MONETIZATION-FLOW.md) | Purchase flow, RevenueCat/Test Store, and App Store readiness runbook |
 | [docs/PRODUCTION-READINESS-CHECKLIST.md](docs/PRODUCTION-READINESS-CHECKLIST.md) | SOP for app launch readiness |
 | [docs/XCODE-CLOUD-WORKFLOW.md](docs/XCODE-CLOUD-WORKFLOW.md) | CI/versioning runbook for Xcode Cloud |
 

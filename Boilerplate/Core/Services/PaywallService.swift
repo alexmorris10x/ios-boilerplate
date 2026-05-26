@@ -78,6 +78,36 @@ enum SubscriptionStatus: String, CaseIterable, Equatable {
         }
     }
 
+    var planName: String {
+        switch self {
+        case .notConfigured:
+            return "Not Configured"
+        case .free:
+            return "Free"
+        case .trial:
+            return "Trial"
+        case .active:
+            return "Pro"
+        case .expired:
+            return "Expired"
+        }
+    }
+
+    var accessDescription: String {
+        switch self {
+        case .notConfigured:
+            return "Connect Provider"
+        case .free:
+            return "No Active Purchase"
+        case .trial:
+            return "Trial Active"
+        case .active:
+            return "Active"
+        case .expired:
+            return "Expired"
+        }
+    }
+
     var isPaidAccess: Bool {
         self == .trial || self == .active
     }

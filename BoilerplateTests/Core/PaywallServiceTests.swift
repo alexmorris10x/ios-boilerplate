@@ -26,4 +26,12 @@ struct PaywallServiceTests {
 
         #expect(service.lastMessage == PaywallError.notConfigured.localizedDescription)
     }
+
+    @Test("Subscription status exposes plan and access labels")
+    func testSubscriptionStatusPlanLabels() {
+        #expect(SubscriptionStatus.free.planName == "Free")
+        #expect(SubscriptionStatus.free.accessDescription == "No Active Purchase")
+        #expect(SubscriptionStatus.active.planName == "Pro")
+        #expect(SubscriptionStatus.active.accessDescription == "Active")
+    }
 }
