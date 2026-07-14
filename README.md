@@ -40,7 +40,7 @@ Every pattern in this boilerplate exists for a reason. This documentation explai
 
 ```bash
 # Clone the repository
-git clone https://github.com/10x-oss/ios-boilerplate.git
+git clone https://github.com/alexmorris10x/ios-boilerplate.git
 cd ios-boilerplate
 
 # Generate the Xcode project
@@ -573,8 +573,10 @@ enum AppEnvironment {
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/10x-oss/ios-boilerplate/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/10x-oss/ios-boilerplate/discussions)
+- **Issues**: [GitHub Issues](https://github.com/alexmorris10x/ios-boilerplate/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/alexmorris10x/ios-boilerplate/discussions)
+- **Support boundary**: [SUPPORT.md](SUPPORT.md)
+- **Security reports**: [SECURITY.md](SECURITY.md)
 
 ## License
 
@@ -582,4 +584,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-Built with care by [10x-oss](https://github.com/10x-oss)
+Built with care by [alexmorris10x](https://github.com/alexmorris10x)

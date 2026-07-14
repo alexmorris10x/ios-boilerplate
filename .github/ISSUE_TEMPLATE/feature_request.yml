@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a focused boilerplate improvement.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What recurring iOS development problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed pattern
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Tradeoffs
+      description: What complexity or maintenance cost would this add?
+    validations:
+      required: true

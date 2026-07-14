@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible boilerplate problem.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Xcode version, iOS target, and repository commit or release.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true

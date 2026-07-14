@@ -1025,4 +1025,4 @@ Makes navigation in Xcode's minimap easy.
 
 ---
 
-*This document is part of the [iOS Boilerplate](https://github.com/10x-oss/ios-boilerplate) project.*
+*This document is part of the [iOS Boilerplate](https://github.com/alexmorris10x/ios-boilerplate) project.*

@@ -28,16 +28,23 @@ Please be respectful and constructive in all interactions. We're all here to bui
 
 ### Building
 
-1. Open `Boilerplate.xcodeproj` in Xcode
-2. Select the `Boilerplate` scheme
-3. Build with `⌘B`
+1. Run `xcodegen generate` to create `Boilerplate.xcodeproj` from the committed `project.yml`.
+2. Open `Boilerplate.xcodeproj` in Xcode.
+3. Select the `Boilerplate` scheme.
+4. Build with `⌘B`.
 
 ### Running Tests
 
 - Press `⌘U` in Xcode to run all tests
 - Or use the command line:
   ```bash
-  xcodebuild test -scheme Boilerplate -destination 'platform=iOS Simulator,name=iPhone 15'
+  xcodegen generate
+  xcodebuild \
+    -project Boilerplate.xcodeproj \
+    -scheme Boilerplate \
+    -destination 'generic/platform=iOS Simulator' \
+    CODE_SIGNING_ALLOWED=NO \
+    build-for-testing
   ```
 
 ## Code Style
@@ -150,6 +157,6 @@ Include:
 
 ## Questions?
 
-Feel free to open an issue for questions or reach out to the maintainers.
+Use [GitHub Issues](https://github.com/alexmorris10x/ios-boilerplate/issues) for focused public questions. Read [SUPPORT.md](SUPPORT.md) for the support boundary and [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
 Thank you for contributing!

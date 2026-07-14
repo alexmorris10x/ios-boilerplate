@@ -94,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Xcode Cloud post-clone script now generates the Xcode project before stamping build numbers.
 - Settings now acts as the production trust surface with subscription, restore, review, support, legal, version, and delete-account placeholders.
+- Canonical project links now point to `alexmorris10x`; OSS governance, security reporting, CI, and dependency maintenance are explicit.
 
 ### Planned
 

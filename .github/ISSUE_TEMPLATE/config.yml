@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/alexmorris10x/ios-boilerplate/security/advisories/new
+    about: Report suspected vulnerabilities privately. Do not open a public issue.
+  - name: Implementation discussion
+    url: https://github.com/alexmorris10x/ios-boilerplate/discussions
+    about: Ask broader questions and compare implementation approaches.
