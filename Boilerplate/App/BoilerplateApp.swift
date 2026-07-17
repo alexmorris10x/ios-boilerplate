@@ -4,6 +4,8 @@ import StoreKit
 
 @main
 struct BoilerplateApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     // MARK: - Dependencies
 
     private let router = Router.shared
@@ -16,6 +18,7 @@ struct BoilerplateApp: App {
     // MARK: - Initialization
 
     init() {
+        AppPerformance.start()
         authService = AuthService(apiClient: apiClient)
         paywallService = PaywallService(analyticsService: analyticsService)
         reviewPromptService = ReviewPromptService(analyticsService: analyticsService)
@@ -36,6 +39,9 @@ struct BoilerplateApp: App {
                 .environment(reviewPromptService)
         }
         .modelContainer(SwiftDataContainer.shared)
+        .onChange(of: scenePhase) { _, phase in
+            AppPerformance.sceneChanged(phase)
+        }
     }
 
     // MARK: - Private Methods
