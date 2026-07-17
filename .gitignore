@@ -20,7 +20,9 @@ playground.xcworkspace
 
 # Swift Package Manager
 .build/
-Packages/
+/Packages/*
+!/Packages/PerformanceNervousSystem/
+!/Packages/PerformanceNervousSystem/**
 Package.resolved
 *.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
 

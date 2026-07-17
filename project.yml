@@ -13,6 +13,10 @@ settings:
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
 
+packages:
+  PerformanceNervousSystem:
+    path: Packages/PerformanceNervousSystem
+
 targets:
   Boilerplate:
     type: application
@@ -24,6 +28,9 @@ targets:
     resources:
       - path: Boilerplate/Resources
         optional: true
+    dependencies:
+      - package: PerformanceNervousSystem
+        product: PerformanceNervousSystem
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.10x.boilerplate

@@ -166,6 +166,7 @@ The full launch checklist lives in [docs/PRODUCTION-READINESS-CHECKLIST.md](docs
 | Analytics | `AnalyticsService` + `AnalyticsEvent` names | Logs provider-neutral events for PostHog or another backend |
 | Settings and trust | `SettingsView` | Centralizes support, legal, subscription, review, version, and account actions |
 | Privacy | `PrivacyInfo.xcprivacy` | Declares current UserDefaults required-reason API usage |
+| Performance | repo-local `Packages/PerformanceNervousSystem` + `AppPerformance` | Captures bounded, privacy-safe spans, lifecycle context, stalls, frames, and session summaries without a private cross-repo build dependency |
 
 ### Monetization Boundary
 
@@ -178,6 +179,14 @@ The full launch checklist lives in [docs/PRODUCTION-READINESS-CHECKLIST.md](docs
 ### Project Generation
 
 `project.yml` is the source of truth for Xcode project settings. Generated `.xcodeproj` files are local artifacts and should stay untracked. CI runs `xcodegen generate` before stamping build numbers or invoking Xcode.
+
+### Performance Template Boundary
+
+The boilerplate owns the canonical performance package and a deliberately thin
+example adapter. Derived apps copy the package into their own repositories and
+rename the adapter's journeys to product language. They do not import the
+boilerplate or a private shared package during builds. Portfolio-wide updates
+start here, then migrate into apps as explicit, independently verified changes.
 
 ---
 

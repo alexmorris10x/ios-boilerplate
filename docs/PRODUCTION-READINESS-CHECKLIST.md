@@ -38,6 +38,8 @@ Use this as the shipping SOP for every app created from this boilerplate. The ap
 - Add Sentry or Firebase Crashlytics before public launch.
 - Upload dSYMs from CI so crash reports resolve to app versions and source lines.
 - Add nonfatal error logging around network, auth, purchase, and persistence failures.
+- Keep `Packages/PerformanceNervousSystem` repo-local and preserve its privacy, bounded-retention, off-main persistence, and test contract when adapting it.
+- Name product-specific launch, foreground, refresh, storage, sync, navigation, and first-useful-content spans in the app's thin performance adapter.
 
 ## 5. Settings And Trust
 
