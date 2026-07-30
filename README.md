@@ -98,6 +98,7 @@ This boilerplate includes the repeatable production surfaces most iOS apps need 
 - **Reviews**: `ReviewPromptService` tracks eligibility and lets the SwiftUI host call Apple's system review prompt after success moments.
 - **Settings and trust**: Support, legal links, app version/build, subscription tools, review link, debug console, and account deletion placeholder.
 - **Privacy**: `PrivacyInfo.xcprivacy` starts with the boilerplate's UserDefaults required-reason API declaration.
+- **Export compliance**: The generated app declares `ITSAppUsesNonExemptEncryption = NO` so exempt-only apps do not require a questionnaire after every upload. Reassess this value whenever adding encryption code or SDKs.
 - **Performance observability**: `Packages/PerformanceNervousSystem` is a repo-local, privacy-safe implementation with a thin app adapter under `Core/Performance`.
 
 The performance package is copied into each derived app rather than consumed

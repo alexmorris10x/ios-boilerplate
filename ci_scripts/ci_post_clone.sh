@@ -40,6 +40,13 @@ fi
 
 echo "[CI][Versioning] Using project file: $PBXPROJ"
 
+if ! grep -Eq 'INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = (YES|NO);' "$PBXPROJ"; then
+  echo "[CI][Export Compliance] ERROR: declare ITSAppUsesNonExemptEncryption explicitly in project.yml"
+  exit 1
+fi
+
+echo "[CI][Export Compliance] Declaration present"
+
 if [ -z "${CI_BUILD_NUMBER:-}" ]; then
   echo "[CI][Versioning] WARNING: CI_BUILD_NUMBER missing; leaving CURRENT_PROJECT_VERSION unchanged"
   exit 0
