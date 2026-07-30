@@ -51,6 +51,7 @@ Use this as the shipping SOP for every app created from this boilerplate. The ap
 ## 6. App Store And Privacy
 
 - Replace bundle ID, display name, app icon, support URL, privacy URL, terms URL, and App Store ID.
+- Keep `ITSAppUsesNonExemptEncryption` explicit. Use `NO` only when the app and bundled SDKs use no encryption or only exempt encryption; reassess after dependency or cryptography changes.
 - Complete App Store privacy details from actual app and SDK behavior.
 - Update `PrivacyInfo.xcprivacy` when adding SDKs or required-reason APIs.
 - If the app tracks users across apps or websites, implement App Tracking Transparency before collection starts.
