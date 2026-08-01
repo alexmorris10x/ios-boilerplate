@@ -16,6 +16,12 @@ Use this as the shipping SOP for every app created from this boilerplate. The ap
 - Paid apps expose paywall, restore purchases, plan/access status, and manage subscription when relevant.
 - Paywall copy clearly states price, billing period, trial terms, and renewal behavior.
 - RevenueCat is the recommended default subscription backend for derived apps.
+- Launch access uses a tri-state-or-richer gate: unknown is not free, cached paid
+  access opens immediately, and a refresh error does not revoke known access.
+- Entitlement resolution starts during onboarding; offerings prewarm separately
+  so paid-customer launch never waits for paywall catalog loading.
+- The mandatory paywall has no dismissal bypass and unknown/no-network state has
+  bounded Retry and Restore recovery instead of an endless launch spinner.
 - RevenueCat Test Store is used only for Debug/simulator testing; Release builds use the real platform app key.
 - Test purchase reset/replay controls live in a separate debug-only section and never ship to App Review.
 - Real App Store products are verified outside `MISSING_METADATA` before submission.
@@ -63,6 +69,8 @@ Use this as the shipping SOP for every app created from this boilerplate. The ap
 - Run unit tests and UI smoke tests on the current Xcode version.
 - Test fresh install, returning user, offline/error states, dark mode, larger text, small iPhone, and iPad if supported.
 - Test onboarding, login, paywall, restore purchases, Settings links, support links, and account deletion.
+- Test cached-active online/offline launch, unknown/no-network recovery, confirmed
+  expiry, and absence of a paywall flash for an active subscriber.
 - Generate screenshots from a repeatable process before submission.
 - Use TestFlight for at least one real-device pass before App Store review.
 - Xcode Cloud should generate the project from `project.yml`, stamp `CURRENT_PROJECT_VERSION`, build, test, archive, and upload.

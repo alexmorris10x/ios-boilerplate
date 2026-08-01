@@ -41,6 +41,12 @@ struct BoilerplateApp: App {
         .modelContainer(SwiftDataContainer.shared)
         .onChange(of: scenePhase) { _, phase in
             AppPerformance.sceneChanged(phase)
+
+            if phase == .active {
+                Task {
+                    await paywallService.refreshCustomerInfo()
+                }
+            }
         }
     }
 
@@ -66,6 +72,7 @@ struct BoilerplateApp: App {
 struct RootView: View {
     @Environment(Router.self) private var router
     @Environment(AuthService.self) private var authService
+    @Environment(PaywallService.self) private var paywallService
     @Environment(ReviewPromptService.self) private var reviewPromptService
     @Environment(\.requestReview) private var requestReview
     @State private var hasCompletedOnboarding = UserDefaultsWrapper.hasCompletedOnboarding
@@ -75,14 +82,12 @@ struct RootView: View {
 
         NavigationStack(path: $router.path) {
             Group {
-                if authService.isAuthenticated {
-                    HomeView()
-                } else if hasCompletedOnboarding {
-                    LoginView()
-                } else {
+                if !hasCompletedOnboarding {
                     OnboardingView {
                         hasCompletedOnboarding = true
                     }
+                } else {
+                    paidApp
                 }
             }
             .navigationDestination(for: Route.self) { route in
@@ -112,6 +117,25 @@ struct RootView: View {
             guard requestID != nil else { return }
             requestReview()
             reviewPromptService.markPromptAttempted()
+        }
+        .task {
+            await paywallService.resolveInitialAccess()
+        }
+    }
+
+    @ViewBuilder
+    private var paidApp: some View {
+        switch paywallService.accessState {
+        case .unlocked:
+            if authService.isAuthenticated {
+                HomeView()
+            } else {
+                LoginView()
+            }
+        case .locked, .notConfigured:
+            PaywallView(placement: "onboarding", allowsDismissal: false)
+        case .checking, .unavailable:
+            EntitlementResolutionView()
         }
     }
 

@@ -25,6 +25,33 @@ StoreKit, or another provider behind `PaywallService`.
 - Keep `Restore Purchases` wired even for lifetime products so reinstall and
   device-transfer paths are obvious.
 
+## Launch Access Policy
+
+Use optimistic continuity, not optimistic free access:
+
+- Configure the purchase SDK before creating the SwiftUI root.
+- Initialize `PaywallService` synchronously from the provider's persisted,
+  previously verified entitlement snapshot. For RevenueCat, use
+  `Purchases.shared.cachedCustomerInfo`.
+- A cached active trial or subscription opens the complete app on the first
+  frame while customer info refreshes in the background.
+- A cached free or expired state shows the mandatory paywall immediately.
+- An install with no cached decision stays gated. Start the check during
+  onboarding; after the 1.5-second launch budget, replace progress with explicit
+  Retry and Restore actions while allowing a late response to resolve access.
+- A refresh error preserves a known locked or unlocked state. Only a successful
+  inactive entitlement response can revoke access.
+- Consume RevenueCat's `customerInfoStream` and apply the supplied customer info
+  directly. Do not start another customer-info fetch from inside the update.
+- Prewarm offerings independently from entitlement resolution. Never make
+  product/catalog loading the condition for opening an already-paid app.
+- Do not invalidate the customer-info cache, call `AppStore.sync()`, or restore
+  automatically on ordinary launch. Restore is an explicit customer action.
+
+The canonical product decision and adapter example live in the 10x-os iOS
+Boilerplate `Subscription Access SOP`. This repository implements the
+provider-neutral state machine; each derived app supplies its RevenueCat adapter.
+
 ## Debug And Simulator Testing
 
 - Prefer RevenueCat Test Store for simulator purchase flow testing.
@@ -58,5 +85,10 @@ StoreKit, or another provider behind `PaywallService`.
 - Release build uses the production public SDK key.
 - Debug-only Test Store code cannot compile into Release.
 - Purchase, cancellation/failure, restore, and already-purchased states are tested.
+- Cached active launch reaches the complete app without a paywall flash.
+- Unknown/no-network launch reaches retry/restore recovery without an endless
+  spinner or full-app bypass.
+- Expiry or revocation shows the paywall only after an authoritative inactive
+  result, with user data preserved.
 - Settings shows plan/access status and restore path.
 - App Store review notes explain how reviewers can find and test the purchase.
