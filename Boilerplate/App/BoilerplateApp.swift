@@ -82,7 +82,9 @@ struct RootView: View {
 
         NavigationStack(path: $router.path) {
             Group {
-                if !hasCompletedOnboarding {
+                if !paywallService.isConfigured {
+                    existingApp
+                } else if !hasCompletedOnboarding {
                     OnboardingView {
                         hasCompletedOnboarding = true
                     }
@@ -121,6 +123,23 @@ struct RootView: View {
         .task {
             await paywallService.resolveInitialAccess()
         }
+        .onChange(of: paywallService.accessState) { previous, current in
+            guard previous == .unlocked, current != .unlocked else { return }
+            router.popToRoot()
+        }
+    }
+
+    @ViewBuilder
+    private var existingApp: some View {
+        if authService.isAuthenticated {
+            HomeView()
+        } else if hasCompletedOnboarding {
+            LoginView()
+        } else {
+            OnboardingView {
+                hasCompletedOnboarding = true
+            }
+        }
     }
 
     @ViewBuilder
@@ -132,10 +151,12 @@ struct RootView: View {
             } else {
                 LoginView()
             }
-        case .locked, .notConfigured:
+        case .locked:
             PaywallView(placement: "onboarding", allowsDismissal: false)
         case .checking, .unavailable:
             EntitlementResolutionView()
+        case .notConfigured:
+            existingApp
         }
     }
 

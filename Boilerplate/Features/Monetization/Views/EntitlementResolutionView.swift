@@ -48,7 +48,7 @@ struct EntitlementResolutionView: View {
     private func retry() {
         isRetrying = true
         Task {
-            await paywallService.refreshCustomerInfo()
+            await paywallService.retryCustomerInfo()
             isRetrying = false
         }
     }

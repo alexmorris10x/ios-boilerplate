@@ -96,6 +96,57 @@ struct PaywallServiceTests {
         #expect(service.accessState == .unlocked)
         #expect(service.subscriptionStatus == .trial)
     }
+
+    @Test("An older launch refresh cannot revoke a completed purchase")
+    @MainActor
+    func testStaleRefreshCannotReplacePurchase() async throws {
+        let provider = ControlledPaywallProvider()
+        provider.purchased = .init(status: .trial)
+        let service = PaywallService(provider: provider)
+
+        let launchRefresh = Task { await service.refreshCustomerInfo() }
+        await waitForRefreshCount(1, provider: provider)
+
+        try await service.purchase(productId: "pro_yearly", placement: "test")
+        provider.completeRefresh(at: 0, with: .init(status: .free))
+        await launchRefresh.value
+
+        #expect(service.accessState == .unlocked)
+        #expect(service.subscriptionStatus == .trial)
+    }
+
+    @Test("Retry replaces a timed-out refresh and ignores its late result")
+    @MainActor
+    func testRetryReplacesTimedOutRefresh() async {
+        let provider = ControlledPaywallProvider()
+        let service = PaywallService(provider: provider)
+
+        let launchRefresh = Task { await service.refreshCustomerInfo() }
+        await waitForRefreshCount(1, provider: provider)
+
+        let retry = Task { await service.retryCustomerInfo() }
+        await waitForRefreshCount(2, provider: provider)
+
+        provider.completeRefresh(at: 1, with: .init(status: .active))
+        await retry.value
+        provider.completeRefresh(at: 0, with: .init(status: .free))
+        await launchRefresh.value
+
+        #expect(service.accessState == .unlocked)
+        #expect(service.subscriptionStatus == .active)
+    }
+
+    @MainActor
+    private func waitForRefreshCount(
+        _ expectedCount: Int,
+        provider: ControlledPaywallProvider
+    ) async {
+        for _ in 0..<100 {
+            if provider.pendingRefreshCount == expectedCount { return }
+            await Task.yield()
+        }
+        #expect(provider.pendingRefreshCount == expectedCount)
+    }
 }
 
 private enum MockPaywallError: Error {
@@ -130,5 +181,38 @@ private final class MockPaywallProvider: PaywallProviding {
 
     func restorePurchases() async throws -> EntitlementSnapshot {
         restored
+    }
+}
+
+@MainActor
+private final class ControlledPaywallProvider: PaywallProviding {
+    let isConfigured = true
+    var purchased = EntitlementSnapshot(status: .free)
+    private var refreshContinuations: [CheckedContinuation<EntitlementSnapshot, Error>] = []
+
+    var pendingRefreshCount: Int {
+        refreshContinuations.count
+    }
+
+    func cachedEntitlement() -> EntitlementSnapshot? {
+        nil
+    }
+
+    func refreshEntitlement() async throws -> EntitlementSnapshot {
+        try await withCheckedThrowingContinuation { continuation in
+            refreshContinuations.append(continuation)
+        }
+    }
+
+    func purchase(productId: String) async throws -> EntitlementSnapshot {
+        purchased
+    }
+
+    func restorePurchases() async throws -> EntitlementSnapshot {
+        purchased
+    }
+
+    func completeRefresh(at index: Int, with snapshot: EntitlementSnapshot) {
+        refreshContinuations[index].resume(returning: snapshot)
     }
 }

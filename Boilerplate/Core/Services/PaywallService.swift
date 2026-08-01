@@ -24,7 +24,10 @@ final class PaywallService {
     private let analyticsService: AnalyticsService?
     private let provider: PaywallProviding
     private var didStart = false
-    private var refreshInFlight = false
+    private var accessRevision: UInt64 = 0
+    private var refreshSequence: UInt64 = 0
+    private var activeRefreshID: UInt64?
+    private var refreshTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -77,6 +80,17 @@ final class PaywallService {
     }
 
     func refreshCustomerInfo() async {
+        await runRefresh(replacingInFlight: false)
+    }
+
+    /// Cancels the launch check and starts a fresh provider request. Results
+    /// from the replaced request are ignored even if its provider does not
+    /// cooperate with task cancellation.
+    func retryCustomerInfo() async {
+        await runRefresh(replacingInFlight: true)
+    }
+
+    private func runRefresh(replacingInFlight: Bool) async {
         guard isConfigured else {
             subscriptionStatus = .notConfigured
             accessState = .notConfigured
@@ -84,13 +98,45 @@ final class PaywallService {
             return
         }
 
-        guard !refreshInFlight else { return }
-        refreshInFlight = true
-        defer { refreshInFlight = false }
+        if !replacingInFlight, let refreshTask {
+            await refreshTask.value
+            return
+        }
 
+        if replacingInFlight {
+            refreshTask?.cancel()
+            accessRevision &+= 1
+        }
+
+        refreshSequence &+= 1
+        let refreshID = refreshSequence
+        let revision = accessRevision
+        activeRefreshID = refreshID
+
+        let task = Task { @MainActor [weak self] () -> Void in
+            guard let self else { return }
+            await self.performRefresh(refreshID: refreshID, revision: revision)
+        }
+        refreshTask = task
+        await task.value
+
+        if activeRefreshID == refreshID {
+            activeRefreshID = nil
+            refreshTask = nil
+        }
+    }
+
+    private func performRefresh(refreshID: UInt64, revision: UInt64) async {
         do {
-            apply(try await provider.refreshEntitlement())
+            let snapshot = try await provider.refreshEntitlement()
+            guard !Task.isCancelled,
+                  activeRefreshID == refreshID,
+                  accessRevision == revision else { return }
+            apply(snapshot)
         } catch {
+            guard !Task.isCancelled,
+                  activeRefreshID == refreshID,
+                  accessRevision == revision else { return }
             lastMessage = error.localizedDescription
 
             // A transport failure is not proof that a paid customer lost access.
@@ -103,11 +149,12 @@ final class PaywallService {
     }
 
     func purchase(productId: String, placement: String) async throws {
+        invalidateOlderRefreshes()
         analyticsService?.track(.purchaseStarted(productId: productId, placement: placement))
 
         do {
             let snapshot = try await provider.purchase(productId: productId)
-            apply(snapshot)
+            applyNewerAuthority(snapshot)
             analyticsService?.track(.purchaseCompleted(productId: productId, placement: placement))
         } catch {
             lastMessage = error.localizedDescription
@@ -117,10 +164,11 @@ final class PaywallService {
     }
 
     func restorePurchases() async throws {
+        invalidateOlderRefreshes()
         analyticsService?.track(.restorePurchasesStarted)
 
         do {
-            apply(try await provider.restorePurchases())
+            applyNewerAuthority(try await provider.restorePurchases())
             analyticsService?.track(.restorePurchasesCompleted)
         } catch {
             lastMessage = error.localizedDescription
@@ -132,6 +180,15 @@ final class PaywallService {
     /// Apply provider-stream updates without starting a second fetch from an
     /// entitlement callback.
     func receiveEntitlementUpdate(_ snapshot: EntitlementSnapshot) {
+        applyNewerAuthority(snapshot)
+    }
+
+    private func invalidateOlderRefreshes() {
+        accessRevision &+= 1
+    }
+
+    private func applyNewerAuthority(_ snapshot: EntitlementSnapshot) {
+        accessRevision &+= 1
         apply(snapshot)
     }
 
