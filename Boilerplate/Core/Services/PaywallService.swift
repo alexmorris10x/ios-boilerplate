@@ -7,11 +7,12 @@ import Foundation
 final class PaywallService {
     // MARK: - State
 
-    private(set) var subscriptionStatus: SubscriptionStatus = .notConfigured
+    private(set) var accessState: AccessGateState
+    private(set) var subscriptionStatus: SubscriptionStatus
     private(set) var lastMessage: String?
 
     var isConfigured: Bool {
-        false
+        provider.isConfigured
     }
 
     var manageSubscriptionURL: URL {
@@ -21,37 +22,134 @@ final class PaywallService {
     // MARK: - Dependencies
 
     private let analyticsService: AnalyticsService?
+    private let provider: PaywallProviding
+    private var didStart = false
+    private var refreshInFlight = false
 
     // MARK: - Initialization
 
-    init(analyticsService: AnalyticsService? = nil) {
+    init(
+        analyticsService: AnalyticsService? = nil,
+        provider: PaywallProviding? = nil
+    ) {
         self.analyticsService = analyticsService
+        self.provider = provider ?? UnconfiguredPaywallProvider()
+
+        if self.provider.isConfigured {
+            if let cached = self.provider.cachedEntitlement() {
+                subscriptionStatus = cached.status
+                accessState = cached.status.isPaidAccess ? .unlocked : .locked
+            } else {
+                subscriptionStatus = .free
+                accessState = .checking
+            }
+        } else {
+            subscriptionStatus = .notConfigured
+            accessState = .notConfigured
+        }
     }
 
     // MARK: - Public Methods
 
+    /// Starts entitlement resolution without holding the first frame on a
+    /// network request. A provider cache can unlock immediately; an unknown
+    /// install becomes a recoverable state after the short launch budget.
+    func resolveInitialAccess(timeoutNanoseconds: UInt64 = 1_500_000_000) async {
+        guard isConfigured, !didStart else { return }
+        didStart = true
+
+        Task { @MainActor [weak self] in
+            await self?.refreshCustomerInfo()
+        }
+
+        guard accessState == .checking else { return }
+
+        do {
+            try await Task.sleep(nanoseconds: timeoutNanoseconds)
+        } catch {
+            return
+        }
+
+        if accessState == .checking {
+            accessState = .unavailable
+            lastMessage = "We couldn't confirm access yet. Check your connection and try again."
+        }
+    }
+
     func refreshCustomerInfo() async {
-        subscriptionStatus = .notConfigured
-        lastMessage = "Connect a purchase provider to load subscription status."
+        guard isConfigured else {
+            subscriptionStatus = .notConfigured
+            accessState = .notConfigured
+            lastMessage = "Connect a purchase provider to load subscription status."
+            return
+        }
+
+        guard !refreshInFlight else { return }
+        refreshInFlight = true
+        defer { refreshInFlight = false }
+
+        do {
+            apply(try await provider.refreshEntitlement())
+        } catch {
+            lastMessage = error.localizedDescription
+
+            // A transport failure is not proof that a paid customer lost access.
+            // Preserve any cached locked or unlocked decision. Only an unknown
+            // install moves to the recoverable unavailable state.
+            if accessState == .checking {
+                accessState = .unavailable
+            }
+        }
     }
 
     func purchase(productId: String, placement: String) async throws {
         analyticsService?.track(.purchaseStarted(productId: productId, placement: placement))
 
-        let error = PaywallError.notConfigured
-        lastMessage = error.localizedDescription
-        analyticsService?.track(.purchaseFailed(productId: productId, placement: placement, reason: error.localizedDescription))
-        throw error
+        do {
+            let snapshot = try await provider.purchase(productId: productId)
+            apply(snapshot)
+            analyticsService?.track(.purchaseCompleted(productId: productId, placement: placement))
+        } catch {
+            lastMessage = error.localizedDescription
+            analyticsService?.track(.purchaseFailed(productId: productId, placement: placement, reason: error.localizedDescription))
+            throw error
+        }
     }
 
     func restorePurchases() async throws {
         analyticsService?.track(.restorePurchasesStarted)
 
-        let error = PaywallError.notConfigured
-        lastMessage = error.localizedDescription
-        analyticsService?.track(.restorePurchasesFailed(reason: error.localizedDescription))
-        throw error
+        do {
+            apply(try await provider.restorePurchases())
+            analyticsService?.track(.restorePurchasesCompleted)
+        } catch {
+            lastMessage = error.localizedDescription
+            analyticsService?.track(.restorePurchasesFailed(reason: error.localizedDescription))
+            throw error
+        }
     }
+
+    /// Apply provider-stream updates without starting a second fetch from an
+    /// entitlement callback.
+    func receiveEntitlementUpdate(_ snapshot: EntitlementSnapshot) {
+        apply(snapshot)
+    }
+
+    private func apply(_ snapshot: EntitlementSnapshot) {
+        subscriptionStatus = snapshot.status
+        accessState = snapshot.status.isPaidAccess ? .unlocked : .locked
+        lastMessage = nil
+    }
+}
+
+// MARK: - Access Gate State
+
+enum AccessGateState: Equatable {
+    case checking
+    case unlocked
+    case locked
+    case unavailable
+    case notConfigured
 }
 
 // MARK: - Subscription Status

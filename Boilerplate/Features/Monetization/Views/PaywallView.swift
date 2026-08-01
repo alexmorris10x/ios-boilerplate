@@ -3,6 +3,7 @@ import SwiftUI
 /// Example paywall shell. Derived apps can keep the interface and replace PaywallService internals.
 struct PaywallView: View {
     let placement: String
+    var allowsDismissal = true
 
     @Environment(PaywallService.self) private var paywallService
     @Environment(AnalyticsService.self) private var analyticsService
@@ -24,11 +25,11 @@ struct PaywallView: View {
                 .accessibilityHidden(true)
 
             VStack(spacing: 8) {
-                Text("Unlock Pro")
+                Text("Start Your 7-Day Free Trial")
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Connect RevenueCat, StoreKit, or Superwall behind PaywallService to make this screen live.")
+                Text("Get the entire app free for 7 days. Then continue at the localized subscription price shown by the connected purchase provider.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -52,7 +53,7 @@ struct PaywallView: View {
 
             Spacer()
 
-            PrimaryButton(title: "Start Free Trial", action: {
+            PrimaryButton(title: "Start 7-Day Free Trial", action: {
                 purchase()
             }, isLoading: isPurchasing)
 
@@ -60,10 +61,24 @@ struct PaywallView: View {
                 restore()
             }, isLoading: isRestoring)
 
-            Button("Not Now") {
-                dismiss()
+            if allowsDismissal {
+                Button("Not Now") {
+                    dismiss()
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
-            .font(.footnote)
+
+            Text("7 days free, then the live price and billing period displayed by the store. Renews automatically until canceled.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 16) {
+                Link("Terms", destination: AppConstants.Support.termsURL)
+                Link("Privacy", destination: AppConstants.Support.privacyURL)
+            }
+            .font(.caption2)
             .foregroundStyle(.secondary)
         }
         .padding()
