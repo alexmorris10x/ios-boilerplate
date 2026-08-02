@@ -50,6 +50,42 @@ enum AppConstants {
         static let defaultExpiration: TimeInterval = 24 * 60 * 60
     }
 
+    // MARK: - Subscription
+
+    /// Replace these identifiers when deriving a new app. They must match the
+    /// complete RevenueCat product -> entitlement -> offering/package chain.
+    enum Subscription {
+        static let entitlementID = "pro"
+        static let offeringID = "default"
+        static let yearlyPackageID = "$rc_annual"
+        static let yearlyProductID = "pro_yearly"
+        static let yearlyBillingPeriodLabel = "year"
+        static let trialLabel = "7-Day Free Trial"
+
+        /// Public RevenueCat SDK keys are safe to embed. Secret `sk_` keys are
+        /// rejected, as are unresolved build-setting placeholders. Release
+        /// builds also reject Test Store keys.
+        static var revenueCatAPIKey: String? {
+            let candidate = [
+                Bundle.main.object(forInfoDictionaryKey: "RevenueCatAPIKey") as? String,
+                ProcessInfo.processInfo.environment["REVENUECAT_API_KEY"],
+            ]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .first {
+                    !$0.isEmpty &&
+                        !$0.contains("$(") &&
+                        !$0.localizedCaseInsensitiveContains("YOUR_REVENUECAT")
+                }
+
+            guard let candidate, !candidate.hasPrefix("sk_") else { return nil }
+#if DEBUG
+            return candidate.hasPrefix("appl_") || candidate.hasPrefix("test_") ? candidate : nil
+#else
+            return candidate.hasPrefix("appl_") ? candidate : nil
+#endif
+        }
+    }
+
     // MARK: - Animation
 
     enum Animation {

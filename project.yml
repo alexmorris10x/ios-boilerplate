@@ -16,6 +16,9 @@ settings:
 packages:
   PerformanceNervousSystem:
     path: Packages/PerformanceNervousSystem
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios-spm.git
+    from: 5.83.0
 
 targets:
   Boilerplate:
@@ -26,6 +29,8 @@ targets:
     dependencies:
       - package: PerformanceNervousSystem
         product: PerformanceNervousSystem
+      - package: RevenueCat
+        product: RevenueCat
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.10x.boilerplate
@@ -34,6 +39,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Boilerplate
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_RevenueCatAPIKey: "$(REVENUECAT_API_KEY)"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

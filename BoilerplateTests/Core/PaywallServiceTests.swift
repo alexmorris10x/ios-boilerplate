@@ -97,6 +97,36 @@ struct PaywallServiceTests {
         #expect(service.subscriptionStatus == .trial)
     }
 
+    @Test("Purchase is not reported complete without the required entitlement")
+    @MainActor
+    func testInactivePurchaseDoesNotUnlock() async {
+        let provider = MockPaywallProvider(cached: .init(status: .free))
+        provider.purchased = .init(status: .free)
+        let service = PaywallService(provider: provider)
+
+        await #expect(throws: PaywallError.entitlementNotGranted) {
+            try await service.purchase(productId: "pro_yearly", placement: "test")
+        }
+
+        #expect(service.accessState == .locked)
+        #expect(service.subscriptionStatus == .free)
+    }
+
+    @Test("Restore reports whether active access was found")
+    @MainActor
+    func testRestoreReportsAccessResult() async throws {
+        let provider = MockPaywallProvider(cached: .init(status: .free))
+        let service = PaywallService(provider: provider)
+
+        provider.restored = .init(status: .active)
+        #expect(try await service.restorePurchases())
+        #expect(service.accessState == .unlocked)
+
+        provider.restored = .init(status: .expired)
+        #expect(try await service.restorePurchases() == false)
+        #expect(service.accessState == .locked)
+    }
+
     @Test("An older launch refresh cannot revoke a completed purchase")
     @MainActor
     func testStaleRefreshCannotReplacePurchase() async throws {
@@ -161,6 +191,13 @@ private final class MockPaywallProvider: PaywallProviding {
     var purchased = EntitlementSnapshot(status: .free)
     var restored = EntitlementSnapshot(status: .free)
     var refreshError: Error?
+    var loadedOffer = SubscriptionOfferSnapshot(
+        productID: "pro_yearly",
+        localizedPrice: "$29.99",
+        billingPeriodLabel: "year",
+        trialLabel: nil,
+        eligibility: .unknown
+    )
 
     init(cached: EntitlementSnapshot? = nil) {
         self.cached = cached
@@ -177,6 +214,10 @@ private final class MockPaywallProvider: PaywallProviding {
 
     func purchase(productId: String) async throws -> EntitlementSnapshot {
         purchased
+    }
+
+    func loadOffer(productId: String) async throws -> SubscriptionOfferSnapshot {
+        loadedOffer
     }
 
     func restorePurchases() async throws -> EntitlementSnapshot {

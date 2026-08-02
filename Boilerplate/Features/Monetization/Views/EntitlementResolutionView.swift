@@ -28,7 +28,7 @@ struct EntitlementResolutionView: View {
             if paywallService.accessState == .checking {
                 ProgressView()
                     .controlSize(.large)
-            } else {
+            } else if paywallService.accessState != .notConfigured {
                 PrimaryButton(title: "Try Again", action: retry, isLoading: isRetrying)
                 SecondaryButton(title: "Restore Purchases", action: restore, isLoading: isRestoring)
             }
@@ -41,6 +41,9 @@ struct EntitlementResolutionView: View {
     private var message: String {
         if paywallService.accessState == .checking {
             return "This should only take a moment."
+        }
+        if paywallService.accessState == .notConfigured {
+            return "Purchases are unavailable in this build."
         }
         return paywallService.lastMessage ?? "Check your connection, then try again or restore an existing purchase."
     }

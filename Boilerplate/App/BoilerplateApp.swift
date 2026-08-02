@@ -20,7 +20,11 @@ struct BoilerplateApp: App {
     init() {
         AppPerformance.start()
         authService = AuthService(apiClient: apiClient)
-        paywallService = PaywallService(analyticsService: analyticsService)
+        let paywallProvider = RevenueCatPaywallProvider()
+        paywallService = PaywallService(
+            analyticsService: analyticsService,
+            provider: paywallProvider
+        )
         reviewPromptService = ReviewPromptService(analyticsService: analyticsService)
         configureUITestState()
         configureAppearance()
@@ -82,9 +86,7 @@ struct RootView: View {
 
         NavigationStack(path: $router.path) {
             Group {
-                if !paywallService.isConfigured {
-                    existingApp
-                } else if !hasCompletedOnboarding {
+                if !hasCompletedOnboarding {
                     OnboardingView {
                         hasCompletedOnboarding = true
                     }
@@ -156,7 +158,7 @@ struct RootView: View {
         case .checking, .unavailable:
             EntitlementResolutionView()
         case .notConfigured:
-            existingApp
+            EntitlementResolutionView()
         }
     }
 

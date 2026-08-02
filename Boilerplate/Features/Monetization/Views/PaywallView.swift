@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Example paywall shell. Derived apps can keep the interface and replace PaywallService internals.
+/// Eligibility-aware paywall backed by the exact RevenueCat offering package.
 struct PaywallView: View {
     let placement: String
     var allowsDismissal = true
@@ -13,7 +13,7 @@ struct PaywallView: View {
     @State private var isRestoring = false
     @State private var message: String?
 
-    private let defaultProductId = "pro_yearly"
+    private let productID = AppConstants.Subscription.yearlyProductID
 
     var body: some View {
         VStack(spacing: 24) {
@@ -25,27 +25,27 @@ struct PaywallView: View {
                 .accessibilityHidden(true)
 
             VStack(spacing: 8) {
-                Text("Start Your 7-Day Free Trial")
+                Text(headline)
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Get the entire app free for 7 days. Then continue at the localized subscription price shown by the connected purchase provider.")
+                Text(detail)
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                Label("Remote offerings and pricing", systemImage: "checkmark.circle")
-                Label("Restore purchases", systemImage: "checkmark.circle")
-                Label("Subscription status in Settings", systemImage: "checkmark.circle")
+                Label("The complete app", systemImage: "checkmark.circle")
+                Label("Restore on another device", systemImage: "checkmark.circle")
+                Label("Manage through Apple", systemImage: "checkmark.circle")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: UIConstants.CornerRadius.medium))
 
-            if let message {
-                Text(message)
+            if let visibleMessage {
+                Text(visibleMessage)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -53,13 +53,11 @@ struct PaywallView: View {
 
             Spacer()
 
-            PrimaryButton(title: "Start 7-Day Free Trial", action: {
-                purchase()
-            }, isLoading: isPurchasing)
+            PrimaryButton(title: purchaseButtonTitle, action: purchase, isLoading: isPurchasing || paywallService.isLoadingOffer)
+                .disabled(paywallService.offer == nil || isRestoring)
 
-            SecondaryButton(title: "Restore Purchases", action: {
-                restore()
-            }, isLoading: isRestoring)
+            SecondaryButton(title: "Restore Purchases", action: restore, isLoading: isRestoring)
+                .disabled(isPurchasing)
 
             if allowsDismissal {
                 Button("Not Now") {
@@ -69,7 +67,7 @@ struct PaywallView: View {
                 .foregroundStyle(.secondary)
             }
 
-            Text("7 days free, then the live price and billing period displayed by the store. Renews automatically until canceled.")
+            Text(terms)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -87,18 +85,80 @@ struct PaywallView: View {
         .onAppear {
             analyticsService.track(.paywallViewed(placement: placement))
         }
+        .task {
+            await paywallService.loadOffer(productId: productID)
+        }
+        .onChange(of: paywallService.accessState) { _, current in
+            if current == .unlocked, allowsDismissal {
+                dismiss()
+            }
+        }
+    }
+
+    private var visibleMessage: String? {
+        message ?? paywallService.offerMessage
+    }
+
+    private var headline: String {
+        guard let offer = paywallService.offer else { return "Unlock Pro" }
+        if offer.eligibility == .eligible, let trialLabel = offer.trialLabel {
+            return "Start Your \(trialLabel)"
+        }
+        return "Unlock Pro"
+    }
+
+    private var detail: String {
+        guard let offer = paywallService.offer else {
+            return "Loading the subscription option from Apple."
+        }
+
+        if offer.eligibility == .eligible, let trialLabel = offer.trialLabel {
+            return "Use the complete app during your \(trialLabel.lowercased()), then continue for \(offer.localizedPrice) per \(offer.billingPeriodLabel)."
+        }
+        return "Get the complete app for \(offer.localizedPrice) per \(offer.billingPeriodLabel)."
+    }
+
+    private var purchaseButtonTitle: String {
+        guard let offer = paywallService.offer else {
+            return paywallService.isLoadingOffer ? "Loading Plan" : "Try Again"
+        }
+
+        if offer.eligibility == .eligible, let trialLabel = offer.trialLabel {
+            return "Start \(trialLabel)"
+        }
+        return "Subscribe · \(offer.localizedPrice)"
+    }
+
+    private var terms: String {
+        guard let offer = paywallService.offer else {
+            return "Apple confirms the price and terms before purchase."
+        }
+
+        switch offer.eligibility {
+        case .eligible:
+            return "\(offer.trialLabel ?? "Introductory period"), then \(offer.localizedPrice) per \(offer.billingPeriodLabel). Renews automatically until canceled."
+        case .ineligible, .noOffer:
+            return "\(offer.localizedPrice) per \(offer.billingPeriodLabel). Renews automatically until canceled."
+        case .unknown:
+            return "\(offer.localizedPrice) per \(offer.billingPeriodLabel). Apple confirms eligibility and terms before purchase. Renews automatically until canceled."
+        }
     }
 
     private func purchase() {
+        guard paywallService.offer != nil else {
+            Task { await paywallService.loadOffer(productId: productID) }
+            return
+        }
+
         isPurchasing = true
         message = nil
 
         Task {
             do {
-                try await paywallService.purchase(productId: defaultProductId, placement: placement)
-                message = "Purchase completed."
+                try await paywallService.purchase(productId: productID, placement: placement)
+                message = "Pro is active."
             } catch {
-                message = error.localizedDescription
+                message = paywallService.lastMessage
             }
             isPurchasing = false
         }
@@ -110,10 +170,10 @@ struct PaywallView: View {
 
         Task {
             do {
-                try await paywallService.restorePurchases()
-                message = "Purchases restored."
+                let accessGranted = try await paywallService.restorePurchases()
+                message = accessGranted ? "Pro is active." : "No active purchase was found."
             } catch {
-                message = error.localizedDescription
+                message = paywallService.lastMessage
             }
             isRestoring = false
         }

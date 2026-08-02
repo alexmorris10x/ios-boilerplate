@@ -49,10 +49,10 @@ struct SubscriptionStatusView: View {
 
         Task {
             do {
-                try await paywallService.restorePurchases()
-                message = "Purchases restored."
+                let accessGranted = try await paywallService.restorePurchases()
+                message = accessGranted ? "Pro is active." : "No active purchase was found."
             } catch {
-                message = error.localizedDescription
+                message = paywallService.lastMessage
             }
             isRestoring = false
         }
