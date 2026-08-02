@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Boilerplate
 
@@ -166,6 +167,31 @@ struct PaywallServiceTests {
         #expect(service.subscriptionStatus == .active)
     }
 
+    @Test("The stream's duplicate cached value does not suppress a newer refresh")
+    @MainActor
+    func testDuplicateInitialStreamValueDoesNotInvalidateRefresh() async {
+        let cachedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let provider = ControlledPaywallProvider(
+            cached: .init(status: .active, requestDate: cachedAt)
+        )
+        let service = PaywallService(provider: provider)
+
+        let launchRefresh = Task { await service.refreshCustomerInfo() }
+        await waitForRefreshCount(1, provider: provider)
+
+        service.receiveEntitlementUpdate(
+            .init(status: .active, requestDate: cachedAt)
+        )
+        provider.completeRefresh(
+            at: 0,
+            with: .init(status: .expired, requestDate: cachedAt.addingTimeInterval(60))
+        )
+        await launchRefresh.value
+
+        #expect(service.accessState == .locked)
+        #expect(service.subscriptionStatus == .expired)
+    }
+
     @MainActor
     private func waitForRefreshCount(
         _ expectedCount: Int,
@@ -228,15 +254,20 @@ private final class MockPaywallProvider: PaywallProviding {
 @MainActor
 private final class ControlledPaywallProvider: PaywallProviding {
     let isConfigured = true
+    var cached: EntitlementSnapshot?
     var purchased = EntitlementSnapshot(status: .free)
     private var refreshContinuations: [CheckedContinuation<EntitlementSnapshot, Error>] = []
+
+    init(cached: EntitlementSnapshot? = nil) {
+        self.cached = cached
+    }
 
     var pendingRefreshCount: Int {
         refreshContinuations.count
     }
 
     func cachedEntitlement() -> EntitlementSnapshot? {
-        nil
+        cached
     }
 
     func refreshEntitlement() async throws -> EntitlementSnapshot {

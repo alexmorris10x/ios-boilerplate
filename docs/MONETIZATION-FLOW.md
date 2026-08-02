@@ -47,6 +47,9 @@ Use optimistic continuity, not optimistic free access:
   inactive entitlement response can revoke access.
 - Consume exactly one RevenueCat `customerInfoStream` and apply the supplied
   customer info directly. Do not start another fetch from inside the update.
+  The stream begins with its last known value, so ignore a request-date
+  duplicate or older snapshot without advancing the revision that protects an
+  in-flight refresh.
 - Prewarm offerings independently from entitlement resolution. Never make
   product/catalog loading the condition for opening an already-paid app.
 - Do not invalidate the customer-info cache, call `AppStore.sync()`,

@@ -35,6 +35,7 @@ final class PaywallService {
     private var activeRefreshID: UInt64?
     private var refreshTask: Task<Void, Never>?
     private var entitlementUpdatesTask: Task<Void, Never>?
+    private var lastAppliedRequestDate: Date?
 
     // MARK: - Initialization
 
@@ -50,6 +51,7 @@ final class PaywallService {
                 subscriptionStatus = cached.status
                 accessState = cached.status.isPaidAccess ? .unlocked : .locked
                 lastMessage = nil
+                lastAppliedRequestDate = cached.requestDate
                 Self.logTransition(
                     snapshot: cached,
                     trigger: "cache",
@@ -175,6 +177,7 @@ final class PaywallService {
                 )
                 return
             }
+            guard shouldApply(snapshot, trigger: "refresh") else { return }
             apply(
                 snapshot,
                 trigger: "refresh",
@@ -249,6 +252,9 @@ final class PaywallService {
                 trigger: "purchase",
                 latencyMilliseconds: Self.milliseconds(since: startedAt)
             )
+            guard accessState == .unlocked else {
+                throw PaywallError.entitlementNotGranted
+            }
             analyticsService?.track(.purchaseCompleted(productId: productId, placement: placement))
         } catch {
             lastMessage = Self.purchaseMessage(for: error)
@@ -275,7 +281,7 @@ final class PaywallService {
                 trigger: "restore",
                 latencyMilliseconds: Self.milliseconds(since: startedAt)
             )
-            let accessGranted = snapshot.status.isPaidAccess
+            let accessGranted = accessState == .unlocked
             analyticsService?.track(.restorePurchasesCompleted)
             return accessGranted
         } catch {
@@ -313,6 +319,7 @@ final class PaywallService {
         trigger: String,
         latencyMilliseconds: Int?
     ) {
+        guard shouldApply(snapshot, trigger: trigger) else { return }
         accessRevision &+= 1
         apply(
             snapshot,
@@ -329,6 +336,10 @@ final class PaywallService {
         latencyMilliseconds: Int?
     ) {
         let previous = accessState
+        if let requestDate = snapshot.requestDate,
+           lastAppliedRequestDate.map({ requestDate > $0 }) ?? true {
+            lastAppliedRequestDate = requestDate
+        }
         subscriptionStatus = snapshot.status
         accessState = snapshot.status.isPaidAccess ? .unlocked : .locked
         lastMessage = nil
@@ -342,6 +353,25 @@ final class PaywallService {
             next: accessState,
             latencyMilliseconds: latencyMilliseconds
         )
+    }
+
+    /// RevenueCat's update stream starts with its last known value. Ignore that
+    /// duplicate (and any older snapshot) so it cannot invalidate a genuinely
+    /// newer refresh, purchase, or restore result.
+    private func shouldApply(_ snapshot: EntitlementSnapshot, trigger: String) -> Bool {
+        guard let requestDate = snapshot.requestDate,
+              let lastAppliedRequestDate,
+              requestDate <= lastAppliedRequestDate else {
+            return true
+        }
+
+        let requestAge = max(0, Int(Date().timeIntervalSince(requestDate)))
+        Logger.shared.app(
+            "[Subscription] decision trigger=\(trigger) revision=\(accessRevision) result=ignored " +
+                "reason=not_newer request_age_seconds=\(requestAge)",
+            level: .debug
+        )
+        return false
     }
 
     // MARK: - Privacy-Safe Diagnostics
