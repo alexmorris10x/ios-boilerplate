@@ -21,9 +21,13 @@ struct BoilerplateApp: App {
         AppPerformance.start()
         authService = AuthService(apiClient: apiClient)
         let paywallProvider = RevenueCatPaywallProvider()
+        let storeKitPositiveAccessProvider = StoreKitPositiveSubscriptionAccessProvider(
+            mappedProductIDs: [AppConstants.Subscription.yearlyProductID]
+        )
         paywallService = PaywallService(
             analyticsService: analyticsService,
-            provider: paywallProvider
+            provider: paywallProvider,
+            positiveAccessProvider: storeKitPositiveAccessProvider
         )
         reviewPromptService = ReviewPromptService(analyticsService: analyticsService)
         configureUITestState()
@@ -48,7 +52,7 @@ struct BoilerplateApp: App {
 
             if phase == .active {
                 Task {
-                    await paywallService.refreshCustomerInfo()
+                    await paywallService.refreshAccess(trigger: "foreground")
                 }
             }
         }

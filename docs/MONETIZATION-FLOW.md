@@ -60,6 +60,25 @@ Use optimistic continuity, not optimistic free access:
 - Revision numbers prevent an older launch refresh from overwriting a newer
   purchase, restore, or stream result.
 
+### Verified Apple fallback
+
+The boilerplate also wires one positive-only StoreKit 2 continuity source for
+the mapped subscription product. This covers an existing Apple subscriber whose
+current anonymous RevenueCat record is inactive:
+
+- RevenueCat remains the only purchase and transaction-finishing owner.
+- Effective access is RevenueCat active **or** verified mapped StoreKit active.
+- RevenueCat inactive plus StoreKit unresolved stays on Checking; a timeout can
+  show Retry and Restore, but never the paywall.
+- Launch and foreground share one StoreKit scan instead of replacing each
+  other's results.
+- A verified active scan saves only product ID, expiration, and verification
+  time for at most 24 hours. A later cold launch opens immediately from that
+  unexpired evidence while both providers refresh.
+- A completed verified inactive scan clears saved StoreKit evidence. An
+  unverified or interrupted scan preserves prior positive evidence.
+- StoreKit never vetoes an active RevenueCat entitlement.
+
 The canonical decision record lives in the 10x-os iOS Boilerplate
 `Subscription Access SOP`. This repository includes the state machine and the
 RevenueCat adapter so a derived app starts with one working ownership model.
@@ -82,6 +101,11 @@ verification result, prior and next gate, duration, package/product match,
 eligibility, and a safe error domain/code. Never log raw RevenueCat user IDs,
 Apple account details, receipts, transaction IDs, JWS data, SDK keys, or full
 CustomerInfo objects.
+
+Debug builds also retain a bounded 256 KB timeline at
+`Library/Application Support/subscription-diagnostics.ndjson`. Pull that file
+from the app data container during physical-device QA so a short paywall flash
+or launch race remains inspectable after the process exits.
 
 ## Debug And Simulator Testing
 
@@ -120,6 +144,9 @@ CustomerInfo objects.
 - Purchase, cancellation/failure, restore, and already-purchased states are tested.
 - Trial-eligible, ineligible, no-offer, and unknown copy states are tested.
 - Cached active launch reaches the complete app without a paywall flash.
+- With RevenueCat inactive and Apple active, the first recognition shows at
+  most Checking and then opens; after force-close, saved positive evidence opens
+  the complete app on the first frame.
 - Unknown/no-network launch reaches retry/restore recovery without an endless
   spinner or full-app bypass.
 - Expiry or revocation shows the paywall only after an authoritative inactive

@@ -1,4 +1,5 @@
 import Foundation
+import StoreKit
 
 enum SubscriptionIdentityMode: String, Equatable {
     case anonymous
@@ -109,5 +110,169 @@ final class UnconfiguredPaywallProvider: PaywallProviding {
 
     func restorePurchases() async throws -> EntitlementSnapshot {
         throw PaywallError.notConfigured
+    }
+}
+
+// MARK: - Positive StoreKit Access Evidence
+
+/// A short-lived, positive-only continuity record. It is not a second purchase
+/// owner and deliberately contains no account, receipt, JWS, or transaction ID.
+struct VerifiedSubscriptionAccessEvidence: Codable, Equatable, Sendable {
+    static let maximumCacheAge: TimeInterval = 24 * 60 * 60
+
+    let productID: String
+    let expirationDate: Date?
+    let verifiedAt: Date
+
+    func isUsable(
+        mappedProductIDs: Set<String>,
+        now: Date,
+        maximumAge: TimeInterval = Self.maximumCacheAge
+    ) -> Bool {
+        guard mappedProductIDs.contains(productID),
+              let expirationDate,
+              expirationDate > now,
+              verifiedAt <= now else { return false }
+        return now.timeIntervalSince(verifiedAt) <= maximumAge
+    }
+}
+
+enum PositiveSubscriptionAccessResult: Equatable, Sendable {
+    case active(VerifiedSubscriptionAccessEvidence)
+    case inactive
+    case uncertain
+}
+
+/// Optional positive access source used only to reconcile a verified Apple
+/// subscription that is missing from RevenueCat's current customer record.
+@MainActor
+protocol PositiveSubscriptionAccessProviding: AnyObject {
+    func cachedVerifiedAccess(now: Date) -> VerifiedSubscriptionAccessEvidence?
+    func refreshVerifiedAccess(now: Date) async -> PositiveSubscriptionAccessResult
+    func accessUpdates() -> AsyncStream<Void>
+}
+
+extension PositiveSubscriptionAccessProviding {
+    func accessUpdates() -> AsyncStream<Void> {
+        AsyncStream { continuation in
+            continuation.finish()
+        }
+    }
+}
+
+/// Reads StoreKit 2 only for verified positive continuity evidence. RevenueCat
+/// remains the sole purchase and transaction-finishing owner.
+@MainActor
+final class StoreKitPositiveSubscriptionAccessProvider: PositiveSubscriptionAccessProviding {
+    private let mappedProductIDs: Set<String>
+    private let defaultsKey: String
+
+    init(
+        mappedProductIDs: Set<String>,
+        defaultsKey: String = "Subscription.verifiedStoreKitAccess.v1"
+    ) {
+        self.mappedProductIDs = mappedProductIDs
+        self.defaultsKey = defaultsKey
+    }
+
+    func cachedVerifiedAccess(now: Date = .now) -> VerifiedSubscriptionAccessEvidence? {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
+              let evidence = try? JSONDecoder().decode(
+                VerifiedSubscriptionAccessEvidence.self,
+                from: data
+              ),
+              evidence.isUsable(mappedProductIDs: mappedProductIDs, now: now) else {
+            UserDefaults.standard.removeObject(forKey: defaultsKey)
+            Logger.shared.app("[Subscription] storekit_evidence cache=miss", level: .info)
+            return nil
+        }
+
+        Logger.shared.app(
+            "[Subscription] storekit_evidence cache=hit product_match=true " +
+                "evidence_age_ms=\(Self.milliseconds(now.timeIntervalSince(evidence.verifiedAt)))",
+            level: .info
+        )
+        return evidence
+    }
+
+    func refreshVerifiedAccess(now: Date = .now) async -> PositiveSubscriptionAccessResult {
+        let startedAt = Date()
+        var verifiedEvidence: VerifiedSubscriptionAccessEvidence?
+        var mappedUnverified = false
+
+        for await result in StoreKit.Transaction.currentEntitlements {
+            switch result {
+            case .verified(let transaction):
+                guard mappedProductIDs.contains(transaction.productID),
+                      transaction.revocationDate == nil else { continue }
+                if let expirationDate = transaction.expirationDate,
+                   expirationDate <= now {
+                    continue
+                }
+                verifiedEvidence = VerifiedSubscriptionAccessEvidence(
+                    productID: transaction.productID,
+                    expirationDate: transaction.expirationDate,
+                    verifiedAt: now
+                )
+            case .unverified(let transaction, _):
+                if mappedProductIDs.contains(transaction.productID) {
+                    mappedUnverified = true
+                }
+            }
+        }
+
+        if let verifiedEvidence {
+            if verifiedEvidence.isUsable(mappedProductIDs: mappedProductIDs, now: now),
+               let data = try? JSONEncoder().encode(verifiedEvidence) {
+                UserDefaults.standard.set(data, forKey: defaultsKey)
+            }
+            Logger.shared.app(
+                "[Subscription] storekit_scan result=active product_match=true " +
+                    "latency_ms=\(Self.milliseconds(Date().timeIntervalSince(startedAt)))",
+                level: .info
+            )
+            return .active(verifiedEvidence)
+        }
+
+        if mappedUnverified {
+            Logger.shared.app(
+                "[Subscription] storekit_scan result=uncertain mapped_unverified=true " +
+                    "latency_ms=\(Self.milliseconds(Date().timeIntervalSince(startedAt)))",
+                level: .warning
+            )
+            return .uncertain
+        }
+
+        UserDefaults.standard.removeObject(forKey: defaultsKey)
+        Logger.shared.app(
+            "[Subscription] storekit_scan result=inactive " +
+                "latency_ms=\(Self.milliseconds(Date().timeIntervalSince(startedAt)))",
+            level: .info
+        )
+        return .inactive
+    }
+
+    func accessUpdates() -> AsyncStream<Void> {
+        AsyncStream { continuation in
+            let task = Task { @MainActor [mappedProductIDs] in
+                for await result in StoreKit.Transaction.updates {
+                    guard !Task.isCancelled else { break }
+                    let productID: String
+                    switch result {
+                    case .verified(let transaction): productID = transaction.productID
+                    case .unverified(let transaction, _): productID = transaction.productID
+                    }
+                    if mappedProductIDs.contains(productID) {
+                        continuation.yield(())
+                    }
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    private static func milliseconds(_ interval: TimeInterval) -> Int {
+        max(0, Int(interval * 1_000))
     }
 }

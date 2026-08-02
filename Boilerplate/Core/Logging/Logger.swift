@@ -32,6 +32,11 @@ final class Logger {
         let context = formatContext(file: file, function: function, line: line)
         let formatted = "\(context) \(message)"
         LogBuffer.shared.append(category: "App", level: level, message: formatted)
+#if DEBUG
+        if message.contains("[Subscription]") {
+            PersistentSubscriptionDiagnosticLog.append(message: message, level: level)
+        }
+#endif
         guard level >= minimumLevel else { return }
         osLog(to: appLogger, message: formatted, level: level)
     }
@@ -110,6 +115,68 @@ final class Logger {
         return "[\(fileName):\(line)]"
     }
 }
+
+#if DEBUG
+nonisolated private enum PersistentSubscriptionDiagnosticLog {
+    private static let queue = DispatchQueue(label: "com.boilerplate.subscription-diagnostics")
+    private static let maximumBytes: UInt64 = 256 * 1_024
+    private static let filename = "subscription-diagnostics.ndjson"
+
+    static func append(message: String, level: LogLevel) {
+        queue.async {
+            guard let fileURL = fileURL() else { return }
+            rotateIfNeeded(fileURL)
+
+            let payload: [String: String] = [
+                "timestamp": ISO8601DateFormatter().string(from: Date()),
+                "level": levelLabel(level),
+                "build": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown",
+                "message": message,
+            ]
+            guard let data = try? JSONSerialization.data(withJSONObject: payload),
+                  var line = String(data: data, encoding: .utf8)?.data(using: .utf8) else { return }
+            line.append(0x0A)
+
+            if !FileManager.default.fileExists(atPath: fileURL.path) {
+                FileManager.default.createFile(atPath: fileURL.path, contents: nil)
+            }
+            guard let handle = try? FileHandle(forWritingTo: fileURL) else { return }
+            defer { try? handle.close() }
+            do {
+                try handle.seekToEnd()
+                try handle.write(contentsOf: line)
+            } catch {
+                return
+            }
+        }
+    }
+
+    private static func fileURL() -> URL? {
+        guard let directory = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else { return nil }
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent(filename)
+    }
+
+    private static func rotateIfNeeded(_ fileURL: URL) {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+              let size = attributes[.size] as? UInt64,
+              size >= maximumBytes else { return }
+        try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    private static func levelLabel(_ level: LogLevel) -> String {
+        switch level {
+        case .debug: "debug"
+        case .info: "info"
+        case .warning: "warning"
+        case .error: "error"
+        }
+    }
+}
+#endif
 
 // MARK: - Convenience Global Functions
 

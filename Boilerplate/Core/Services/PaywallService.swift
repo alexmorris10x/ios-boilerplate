@@ -29,27 +29,45 @@ final class PaywallService {
 
     private let analyticsService: AnalyticsService?
     private let provider: PaywallProviding
+    private let positiveAccessProvider: PositiveSubscriptionAccessProviding?
+    private var providerSubscriptionStatus: SubscriptionStatus
+    private var positiveAccessState: PositiveAccessState
     private var didStart = false
     private var accessRevision: UInt64 = 0
     private var refreshSequence: UInt64 = 0
     private var activeRefreshID: UInt64?
     private var refreshTask: Task<Void, Never>?
     private var entitlementUpdatesTask: Task<Void, Never>?
+    private var positiveAccessUpdatesTask: Task<Void, Never>?
+    private var isRefreshingPositiveAccess = false
+    private var initialBudgetExpired = false
     private var lastAppliedRequestDate: Date?
 
     // MARK: - Initialization
 
     init(
         analyticsService: AnalyticsService? = nil,
-        provider: PaywallProviding? = nil
+        provider: PaywallProviding? = nil,
+        positiveAccessProvider: PositiveSubscriptionAccessProviding? = nil
     ) {
         self.analyticsService = analyticsService
         self.provider = provider ?? UnconfiguredPaywallProvider()
+        self.positiveAccessProvider = positiveAccessProvider
+
+        let cachedPositiveAccess = positiveAccessProvider?.cachedVerifiedAccess(now: .now)
+        positiveAccessState = cachedPositiveAccess == nil
+            ? (positiveAccessProvider == nil ? .notUsed : .checking)
+            : .active
 
         if self.provider.isConfigured {
             if let cached = self.provider.cachedEntitlement() {
-                subscriptionStatus = cached.status
-                accessState = cached.status.isPaidAccess ? .unlocked : .locked
+                providerSubscriptionStatus = cached.status
+                subscriptionStatus = cached.status.isPaidAccess || cachedPositiveAccess == nil
+                    ? cached.status
+                    : .active
+                accessState = cached.status.isPaidAccess || cachedPositiveAccess != nil
+                    ? .unlocked
+                    : (positiveAccessProvider == nil ? .locked : .checking)
                 lastMessage = nil
                 lastAppliedRequestDate = cached.requestDate
                 Self.logTransition(
@@ -62,8 +80,14 @@ final class PaywallService {
                     latencyMilliseconds: 0
                 )
             } else {
+                providerSubscriptionStatus = .free
                 subscriptionStatus = .free
-                accessState = .checking
+                if cachedPositiveAccess != nil {
+                    subscriptionStatus = .active
+                    accessState = .unlocked
+                } else {
+                    accessState = .checking
+                }
                 lastMessage = nil
                 Logger.shared.app(
                     "[Subscription] decision trigger=cache revision=0 identity=\(self.provider.identityMode.rawValue) cache=miss previous=checking next=checking",
@@ -71,9 +95,18 @@ final class PaywallService {
                 )
             }
         } else {
-            subscriptionStatus = .notConfigured
-            accessState = .notConfigured
-            lastMessage = PaywallError.notConfigured.localizedDescription
+            providerSubscriptionStatus = .notConfigured
+            if cachedPositiveAccess != nil {
+                subscriptionStatus = .active
+                accessState = .unlocked
+                lastMessage = nil
+            } else {
+                subscriptionStatus = .notConfigured
+                accessState = positiveAccessProvider == nil ? .notConfigured : .checking
+                lastMessage = positiveAccessProvider == nil
+                    ? PaywallError.notConfigured.localizedDescription
+                    : nil
+            }
         }
     }
 
@@ -83,12 +116,13 @@ final class PaywallService {
     /// cache can unlock immediately; an unknown install becomes recoverable
     /// after the short launch budget without ever bypassing the paywall.
     func resolveInitialAccess(timeoutNanoseconds: UInt64 = 1_500_000_000) async {
-        guard isConfigured, !didStart else { return }
+        guard !didStart, isConfigured || positiveAccessProvider != nil else { return }
         didStart = true
         startEntitlementUpdatesIfNeeded()
+        startPositiveAccessUpdatesIfNeeded()
 
         Task { @MainActor [weak self] in
-            await self?.refreshCustomerInfo()
+            await self?.refreshAccess(trigger: "launch")
         }
 
         guard accessState == .checking else { return }
@@ -101,6 +135,7 @@ final class PaywallService {
 
         if accessState == .checking {
             let previous = accessState
+            initialBudgetExpired = true
             accessState = .unavailable
             lastMessage = "We couldn't confirm access yet. Check your connection and try again."
             Logger.shared.app(
@@ -114,17 +149,28 @@ final class PaywallService {
         await runRefresh(replacingInFlight: false)
     }
 
+    func refreshAccess(trigger: String = "manual") async {
+        async let revenueCat: Void = refreshCustomerInfo()
+        async let positiveAccess: Void = refreshPositiveAccess(trigger: trigger)
+        _ = await (revenueCat, positiveAccess)
+    }
+
     /// Cancel the launch check and start a new request. Results from the
     /// replaced request are ignored even if the provider cannot cancel it.
     func retryCustomerInfo() async {
-        await runRefresh(replacingInFlight: true)
+        initialBudgetExpired = false
+        if accessState == .unavailable {
+            accessState = .checking
+        }
+        async let revenueCat: Void = runRefresh(replacingInFlight: true)
+        async let positiveAccess: Void = refreshPositiveAccess(trigger: "retry")
+        _ = await (revenueCat, positiveAccess)
     }
 
     private func runRefresh(replacingInFlight: Bool) async {
         guard isConfigured else {
-            subscriptionStatus = .notConfigured
-            accessState = .notConfigured
-            lastMessage = PaywallError.notConfigured.localizedDescription
+            providerSubscriptionStatus = .notConfigured
+            recomputeEffectiveAccess()
             return
         }
 
@@ -196,6 +242,7 @@ final class PaywallService {
             // Preserve cached locked or unlocked decisions. Only an unknown
             // install moves to the recoverable unavailable state.
             if accessState == .checking {
+                initialBudgetExpired = true
                 accessState = .unavailable
             }
         }
@@ -310,6 +357,54 @@ final class PaywallService {
         }
     }
 
+    private func startPositiveAccessUpdatesIfNeeded() {
+        guard positiveAccessUpdatesTask == nil,
+              let positiveAccessProvider else { return }
+
+        positiveAccessUpdatesTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await _ in positiveAccessProvider.accessUpdates() {
+                guard !Task.isCancelled else { break }
+                await refreshPositiveAccess(trigger: "transaction_update")
+            }
+        }
+    }
+
+    private func refreshPositiveAccess(trigger: String) async {
+        guard let positiveAccessProvider else { return }
+        guard !isRefreshingPositiveAccess else {
+            Logger.shared.app(
+                "[Subscription] storekit_scan trigger=\(trigger) result=skipped reason=in_flight",
+                level: .debug
+            )
+            return
+        }
+
+        isRefreshingPositiveAccess = true
+        defer { isRefreshingPositiveAccess = false }
+        let previous = accessState
+        let result = await positiveAccessProvider.refreshVerifiedAccess(now: .now)
+
+        switch result {
+        case .active:
+            positiveAccessState = .active
+        case .inactive:
+            positiveAccessState = .inactive
+        case .uncertain:
+            if positiveAccessState != .active {
+                positiveAccessState = .unavailable
+                lastMessage = "We couldn't confirm Apple access yet. Try again or restore purchases."
+            }
+        }
+
+        recomputeEffectiveAccess()
+        Logger.shared.app(
+            "[Subscription] storekit_decision trigger=\(trigger) result=\(positiveAccessState.logLabel) " +
+                "previous=\(previous.logLabel) next=\(accessState.logLabel)",
+            level: positiveAccessState == .unavailable ? .warning : .info
+        )
+    }
+
     private func invalidateOlderRefreshes() {
         accessRevision &+= 1
     }
@@ -340,9 +435,11 @@ final class PaywallService {
            lastAppliedRequestDate.map({ requestDate > $0 }) ?? true {
             lastAppliedRequestDate = requestDate
         }
-        subscriptionStatus = snapshot.status
-        accessState = snapshot.status.isPaidAccess ? .unlocked : .locked
-        lastMessage = nil
+        providerSubscriptionStatus = snapshot.status
+        recomputeEffectiveAccess()
+        if accessState != .unavailable {
+            lastMessage = nil
+        }
 
         Self.logTransition(
             snapshot: snapshot,
@@ -353,6 +450,44 @@ final class PaywallService {
             next: accessState,
             latencyMilliseconds: latencyMilliseconds
         )
+    }
+
+    private func recomputeEffectiveAccess() {
+        if providerSubscriptionStatus.isPaidAccess || positiveAccessState == .active {
+            subscriptionStatus = providerSubscriptionStatus.isPaidAccess
+                ? providerSubscriptionStatus
+                : .active
+            accessState = .unlocked
+            return
+        }
+
+        subscriptionStatus = providerSubscriptionStatus
+
+        if !isConfigured {
+            switch positiveAccessState {
+            case .checking:
+                accessState = initialBudgetExpired ? .unavailable : .checking
+            case .unavailable:
+                accessState = .unavailable
+            case .active:
+                accessState = .unlocked
+            case .inactive, .notUsed:
+                accessState = .notConfigured
+                lastMessage = PaywallError.notConfigured.localizedDescription
+            }
+            return
+        }
+
+        switch positiveAccessState {
+        case .checking:
+            accessState = initialBudgetExpired ? .unavailable : .checking
+        case .unavailable:
+            accessState = .unavailable
+        case .active:
+            accessState = .unlocked
+        case .inactive, .notUsed:
+            accessState = .locked
+        }
     }
 
     /// RevenueCat's update stream starts with its last known value. Ignore that
@@ -449,6 +584,24 @@ enum AccessGateState: Equatable {
         case .locked: "locked"
         case .unavailable: "unavailable"
         case .notConfigured: "not_configured"
+        }
+    }
+}
+
+private enum PositiveAccessState: Equatable {
+    case notUsed
+    case checking
+    case active
+    case inactive
+    case unavailable
+
+    var logLabel: String {
+        switch self {
+        case .notUsed: "not_used"
+        case .checking: "checking"
+        case .active: "active"
+        case .inactive: "inactive"
+        case .unavailable: "unavailable"
         }
     }
 }

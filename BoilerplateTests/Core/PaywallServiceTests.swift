@@ -46,6 +46,90 @@ struct PaywallServiceTests {
         #expect(service.subscriptionStatus == .trial)
     }
 
+    @Test("Verified StoreKit evidence unlocks when RevenueCat cache is inactive")
+    @MainActor
+    func testStoreKitEvidenceUnlocksInactiveRevenueCatCache() {
+        let now = Date()
+        let provider = MockPaywallProvider(cached: .init(status: .free))
+        let positiveProvider = MockPositiveAccessProvider(
+            cached: .init(
+                productID: "pro_yearly",
+                expirationDate: now.addingTimeInterval(3_600),
+                verifiedAt: now
+            )
+        )
+        let service = PaywallService(
+            provider: provider,
+            positiveAccessProvider: positiveProvider
+        )
+
+        #expect(service.accessState == .unlocked)
+        #expect(service.subscriptionStatus == .active)
+    }
+
+    @Test("Inactive RevenueCat cache waits for StoreKit before showing the paywall")
+    @MainActor
+    func testInactiveRevenueCatWaitsForStoreKitResolution() async {
+        let now = Date()
+        let provider = MockPaywallProvider(cached: .init(status: .free))
+        let positiveProvider = MockPositiveAccessProvider(
+            refreshed: .active(
+                .init(
+                    productID: "pro_yearly",
+                    expirationDate: now.addingTimeInterval(3_600),
+                    verifiedAt: now
+                )
+            )
+        )
+        let service = PaywallService(
+            provider: provider,
+            positiveAccessProvider: positiveProvider
+        )
+
+        #expect(service.accessState == .checking)
+        await service.refreshAccess(trigger: "test")
+        #expect(service.accessState == .unlocked)
+    }
+
+    @Test("Empty StoreKit result cannot erase active RevenueCat access")
+    @MainActor
+    func testInactiveStoreKitDoesNotVetoRevenueCat() async {
+        let provider = MockPaywallProvider(cached: .init(status: .active))
+        let positiveProvider = MockPositiveAccessProvider(refreshed: .inactive)
+        let service = PaywallService(
+            provider: provider,
+            positiveAccessProvider: positiveProvider
+        )
+
+        await service.refreshAccess(trigger: "test")
+
+        #expect(service.accessState == .unlocked)
+        #expect(service.subscriptionStatus == .active)
+    }
+
+    @Test("Uncertain StoreKit refresh preserves saved positive access")
+    @MainActor
+    func testUncertainStoreKitPreservesCachedPositiveAccess() async {
+        let now = Date()
+        let positiveProvider = MockPositiveAccessProvider(
+            cached: .init(
+                productID: "pro_yearly",
+                expirationDate: now.addingTimeInterval(3_600),
+                verifiedAt: now
+            ),
+            refreshed: .uncertain
+        )
+        let service = PaywallService(
+            provider: MockPaywallProvider(cached: .init(status: .free)),
+            positiveAccessProvider: positiveProvider
+        )
+
+        await service.refreshAccess(trigger: "test")
+
+        #expect(service.accessState == .unlocked)
+        #expect(service.subscriptionStatus == .active)
+    }
+
     @Test("Refresh failure preserves cached paid access")
     @MainActor
     func testRefreshFailurePreservesPaidAccess() async {
@@ -207,6 +291,28 @@ struct PaywallServiceTests {
 
 private enum MockPaywallError: Error {
     case offline
+}
+
+@MainActor
+private final class MockPositiveAccessProvider: PositiveSubscriptionAccessProviding {
+    var cached: VerifiedSubscriptionAccessEvidence?
+    var refreshed: PositiveSubscriptionAccessResult
+
+    init(
+        cached: VerifiedSubscriptionAccessEvidence? = nil,
+        refreshed: PositiveSubscriptionAccessResult = .inactive
+    ) {
+        self.cached = cached
+        self.refreshed = refreshed
+    }
+
+    func cachedVerifiedAccess(now: Date) -> VerifiedSubscriptionAccessEvidence? {
+        cached
+    }
+
+    func refreshVerifiedAccess(now: Date) async -> PositiveSubscriptionAccessResult {
+        refreshed
+    }
 }
 
 @MainActor
