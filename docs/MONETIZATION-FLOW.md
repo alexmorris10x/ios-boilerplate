@@ -17,7 +17,10 @@ Use this runbook when wiring purchases in apps created from this boilerplate.
 
 ## RevenueCat Shape
 
+- Create one RevenueCat project for this production app and bundle ID. Do not attach a derived app to a shared portfolio project unless cross-app customer identity or entitlements are an explicit product decision.
+- RevenueCat customers, charts, and lifetime-value history are project-scoped. App filters inside a shared project do not create independent analytics.
 - Use a public SDK key in the app only. Never commit secret API keys.
+- Retrieve the Apple public SDK key from `Apps` -> the matching App Store app -> `Public API Key` -> `Show key`. The project-level `API keys` page contains secret management keys and is not the app-key source.
 - Replace every value in `AppConstants.Subscription`, then verify the complete
   product -> entitlement -> offering/package chain in RevenueCat.
 - Treat RevenueCat entitlements as the app's paid-access source of truth.
@@ -28,6 +31,8 @@ Use this runbook when wiring purchases in apps created from this boilerplate.
 - Anonymous RevenueCat identity survives relaunch and app updates, but not app
   deletion. A no-account app therefore needs visible, user-initiated Restore and
   a deliberately chosen RevenueCat restore-transfer policy.
+
+If an existing app is being separated from a shared RevenueCat project, export the available customers, transactions, and charts before changing keys. Keep the shared project and private exports as the historical record. Older installed builds continue reporting there until customers update, so move and verify one app at a time.
 
 ## Launch Access Policy
 
@@ -138,6 +143,7 @@ or launch race remains inspectable after the process exits.
 
 ## Launch Checklist
 
+- Dedicated RevenueCat project contains exactly this app unless intentional sharing is documented.
 - Product ID and entitlement ID match across app code, RevenueCat, and store.
 - Release build uses the production public SDK key.
 - Debug-only Test Store code cannot compile into Release.

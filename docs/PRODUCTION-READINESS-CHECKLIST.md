@@ -16,6 +16,9 @@ Use this as the shipping SOP for every app created from this boilerplate. The ap
 - Paid apps expose paywall, restore purchases, plan/access status, and manage subscription when relevant.
 - Paywall copy clearly states price, billing period, trial terms, and renewal behavior.
 - RevenueCat is the recommended default subscription backend for derived apps.
+- Each production app uses its own RevenueCat project by default. Shared projects require an explicit cross-app identity or entitlement decision because customers and analytics are project-scoped.
+- The Apple public SDK key comes from `Apps` -> the matching app -> `Public API Key` -> `Show key`; project-level secret keys never enter app source.
+- Before separating an existing shared project, export its available customer, transaction, and chart data and retain it as the historical record.
 - Launch access uses a tri-state-or-richer gate: unknown is not free, cached paid
   access opens immediately, and a refresh error does not revoke known access.
 - Entitlement resolution starts during onboarding; offerings prewarm separately
