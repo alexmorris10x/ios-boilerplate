@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="memex-interaction" content="interactive-canvas">
+  <meta name="memex-canvas-adapter" content="dom">
+  <meta name="memex-board-type" content="work">
+  <meta name="memex-source-folder" content="ios-boilerplate/docs/product">
+  <meta name="memex-parent-folder" content="Apps">
+  <meta name="memex-board-status" content="active">
+  <meta name="memex-board-updated" content="2026-08-01">
+  <title>Apps — iOS Boilerplate Backlog Board</title>
+  <style>
+    :root{color-scheme:dark;--field:#070b12;--surface:#101824;--surface-2:#172232;--ink:#f5f8fc;--muted:#9cadc0;--line:rgba(181,203,226,.17);--accent:#5ac8fa;--green:#34d399;--blue:#60a5fa;--radius-sm:6px;--radius-md:8px;--radius-pill:999px;--shadow:0 26px 70px rgba(0,0,0,.35)}
+    html[data-theme="light"]{color-scheme:light;--field:#edf2f7;--surface:#fff;--surface-2:#f5f8fb;--ink:#17202a;--muted:#5e6b78;--line:rgba(26,39,52,.15);--shadow:0 22px 55px rgba(29,43,57,.14)}
+    *{box-sizing:border-box}html,body{margin:0;background:var(--field);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;-webkit-text-size-adjust:100%}a{color:inherit}
+    .board{width:1360px;min-height:980px;padding:42px 42px 120px;background:radial-gradient(circle at 16% 2%,rgba(90,200,250,.16),transparent 27%),linear-gradient(rgba(170,190,211,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(170,190,211,.035) 1px,transparent 1px),var(--field);background-size:auto,44px 44px,44px 44px,auto}
+    .hero{display:grid;grid-template-columns:1.25fr .75fr;gap:22px;min-height:290px;padding:34px;border:1px solid var(--line);border-radius:var(--radius-md);background:linear-gradient(135deg,rgba(90,200,250,.11),var(--surface));box-shadow:var(--shadow)}
+    .eyebrow,.lane-label{margin:0 0 10px;color:var(--accent);font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}h1,h2,h3,p{margin-top:0}h1{max-width:800px;margin-bottom:18px;font-size:60px;line-height:.94;letter-spacing:-.052em}.purpose{max-width:790px;margin:0;color:var(--muted);font-size:18px;line-height:1.52}
+    .read{display:flex;flex-direction:column;justify-content:space-between;padding:22px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface-2)}.read h2{margin-bottom:12px;font-size:27px;line-height:1.08;letter-spacing:-.03em}.links{display:flex;flex-wrap:wrap;gap:7px}.links a{padding:8px 11px;border:1px solid var(--line);border-radius:var(--radius-pill);background:rgba(255,255,255,.05);font-size:11px;font-weight:850;text-decoration:none}
+    .scope-strip{display:grid;grid-template-columns:260px 1fr;align-items:center;gap:20px;margin-top:22px;padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius-md);background:rgba(16,24,36,.92)}html[data-theme="light"] .scope-strip{background:rgba(255,255,255,.92)}.scope-strip h2{margin:0;font-size:23px;line-height:1.08;letter-spacing:-.03em}.scope-key{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+    .scope{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:9px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.scope-key .scope{min-height:46px;justify-content:center;border-radius:var(--radius-sm);background:var(--surface-2)}.scope-key .scope b{color:currentColor;font-size:10px}.scope-key .scope em{color:var(--muted);font-size:9px;font-style:normal;font-weight:700;letter-spacing:0;text-transform:none}.scope-key .scope strong{display:grid;place-items:center;min-width:22px;height:22px;margin-left:auto;border-radius:50%;background:rgba(255,255,255,.07);color:var(--ink);font-size:10px}.scope-product{color:#c084fc}.scope-feature{color:#60a5fa}.scope-fix{color:#fb923c}.scope-qa{color:#34d399}.scope-release{color:#f472b6}
+    .lanes{display:grid;grid-template-columns:repeat(3,1fr);align-items:start;gap:18px;margin-top:22px}.lane{min-height:520px;padding:22px;border:1px solid var(--line);border-radius:var(--radius-md);background:rgba(16,24,36,.94)}html[data-theme="light"] .lane{background:rgba(255,255,255,.94)}.lane>header{position:relative;min-height:104px;padding-right:42px}.lane>header h2{margin:0;font-size:24px;line-height:1.08;letter-spacing:-.03em}.count{position:absolute;top:0;right:0;display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;font-size:12px;font-weight:900}.lane-now{border-top:4px solid var(--accent)}.lane-next{border-top:4px solid var(--blue)}.lane-later{border-top:4px solid #64748b}.lane-next .lane-label{color:var(--blue)}.lane-later .lane-label{color:var(--muted)}
+    .items{display:grid;gap:12px}.item{padding:17px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface-2)}.item-head{display:flex;align-items:start;justify-content:space-between;gap:12px}.tags{display:flex;flex:0 0 auto;align-items:center;gap:6px}.item h3{margin:0 0 13px;font-size:18px;line-height:1.15;letter-spacing:-.018em}.state{flex:0 0 auto;padding:6px 8px;border:1px solid var(--line);border-radius:var(--radius-pill);color:var(--accent);font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.item p{margin:0;color:var(--muted);font-size:12px;line-height:1.48}.item p+p{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}.item p b{display:block;margin-bottom:3px;color:var(--ink);font-size:9px;letter-spacing:.1em;text-transform:uppercase}.done{color:color-mix(in srgb,var(--muted) 86%,var(--green))!important}.rule{margin:20px 2px 0;color:var(--muted);font-size:11px;line-height:1.45}
+    #canvas-viewport{position:fixed;inset:0;z-index:1000;overflow:hidden;touch-action:none;cursor:grab}#canvas-viewport.panning{cursor:grabbing}#canvas-stage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}html.canvas-active,html.canvas-active body{width:100%;height:100%;overflow:hidden!important;overscroll-behavior:none}
+    #review-toggle{position:fixed;right:14px;bottom:max(14px,env(safe-area-inset-bottom));z-index:1102;width:46px;height:46px;border:1px solid var(--line);border-radius:50%;background:rgba(11,17,25,.94);color:#e8f0f8;box-shadow:0 12px 34px rgba(0,0,0,.36);font:900 18px/1 -apple-system,sans-serif}#canvas-controls{position:fixed;right:14px;bottom:max(70px,calc(env(safe-area-inset-bottom) + 70px));z-index:1101;display:none;max-width:calc(100vw - 28px);align-items:center;justify-content:center;gap:6px;padding:8px;border:1px solid rgba(148,163,184,.24);border-radius:18px;background:rgba(8,12,18,.94);box-shadow:0 14px 40px rgba(0,0,0,.38);backdrop-filter:blur(16px);color:#e5edf7;font:800 11px/1 -apple-system,sans-serif;user-select:none}#canvas-controls.open{display:flex}#canvas-controls button,#canvas-controls output{min-height:30px;border:1px solid rgba(148,163,184,.22);border-radius:var(--radius-pill);padding:7px 10px;background:rgba(255,255,255,.07);color:inherit;font:inherit;white-space:nowrap}#canvas-controls output{min-width:50px;text-align:center;color:var(--blue)}@media(max-width:520px){#canvas-controls{flex-wrap:wrap;max-width:360px}}
+  </style>
+</head>
+<body>
+  <main class="board">
+    <section class="hero"><div><p class="eyebrow">ios-boilerplate/docs/product · canonical work queue</p><h1>iOS Boilerplate Backlog</h1><p class="purpose">Keep the shared starter trustworthy, easy to derive, and explicit about what every new product must replace and prove.</p></div><aside class="read"><div><p class="eyebrow">Current read</p><h2>One focus: eliminate launch-time entitlement stalls without giving unknown installs free access.</h2></div><div class="links"><a href="Product Board.html">Product Board</a><a href="Product Context Brief.md">Current brief</a><a href="../SUBSCRIPTION-ACCESS-SOP.md">Payment SOP</a><a href="file:///Users/10x/10x-os/50-engineering/2026-08-02%20-%20Subscription%20Launch%20Gating%20Study/Subscription%20Launch%20Gating%20Study.md">Study</a></div></aside></section>
+    <section class="scope-strip" aria-label="Scope breakdown"><div><p class="eyebrow">Scope</p><h2>What kind of work is this?</h2></div><div class="scope-key"><span class="scope scope-product"><b>Product</b><em>decisions</em><strong data-scope-count="product">0</strong></span><span class="scope scope-feature"><b>Feature</b><em>new</em><strong data-scope-count="feature">0</strong></span><span class="scope scope-fix"><b>Fix</b><em>repair</em><strong data-scope-count="fix">0</strong></span><span class="scope scope-qa"><b>QA</b><em>proof</em><strong data-scope-count="qa">0</strong></span><span class="scope scope-release"><b>Release</b><em>ship</em><strong data-scope-count="release">0</strong></span></div></section>
+    <div class="lanes"><section class="lane lane-now">
+  <header><p class="lane-label">Now</p><h2>One clear portfolio blocker.</h2><span class="count">1</span></header>
+  <div class="items"><article class="item" data-scope="fix">
+  <div class="item-head"><h3>Standardize subscription launch gating</h3><div class="tags"><span class="scope scope-fix">Fix</span><span class="state">In progress</span></div></div>
+  <p><b>Next</b>Prove the cache-first `checking → unlocked | locked | unavailable` root on a real RevenueCat candidate: paid customers open immediately, unknown installs remain gated, and failures expose Retry and Restore instead of a blank stall.</p>
+  <p class="done"><b>Done when</b>The SOP, starter, and reusable skill agree; unit/build checks pass; and sandbox or TestFlight proves trial purchase, immediate unlock, relaunch, restore, offline cached access, expiry, and no paywall flash for an active customer.</p>
+</article></div>
+</section>
+<section class="lane lane-next">
+  <header><p class="lane-label">Next</p><h2>Important after the payment gate clears.</h2><span class="count">7</span></header>
+  <div class="items"><article class="item" data-scope="qa">
+  <div class="item-head"><h3>Prove a clean derivation</h3><div class="tags"><span class="scope scope-qa">QA</span><span class="state">Ready</span></div></div>
+  <p><b>Next</b>Create a temporary copy from committed source, run XcodeGen, rename the app and bundle identity, replace required constants and example branding, then complete the app-target compile/link and focused unit-test gate.</p>
+  <p class="done"><b>Done when</b>A new branded app reaches a compiling foundation through a short recorded path with no hidden dependency on the boilerplate checkout.</p>
+</article>
+<article class="item" data-scope="product">
+  <div class="item-head"><h3>Resolve the native UI quality baseline</h3><div class="tags"><span class="scope scope-product">Product</span><span class="state">In progress</span></div></div>
+  <p><b>Next</b>Review the existing uncommitted tokens, component workbench, card/button changes, and quality-system document; finish, revise, or explicitly park them without mixing them into unrelated work.</p>
+  <p class="done"><b>Done when</b>The default visual-quality contract is an explicit decision and the source state is clean and reviewable.</p>
+</article>
+<article class="item" data-scope="release">
+  <div class="item-head"><h3>Publish a versioned starter baseline</h3><div class="tags"><span class="scope scope-release">Release</span><span class="state">Waiting</span></div></div>
+  <p><b>Next</b>After clean derivation and source review, tag the first deliberate starter release and record its supported Xcode, Swift, iOS, and migration expectations.</p>
+  <p class="done"><b>Done when</b>Derived apps can name the exact stable boilerplate version they started from.</p>
+</article>
+<article class="item" data-scope="fix">
+  <div class="item-head"><h3>Make dangerous placeholders fail loudly</h3><div class="tags"><span class="scope scope-fix">Fix</span><span class="state">Ready</span></div></div>
+  <p><b>Next</b>Audit bundle identity, API URLs, support/legal links, App Store ID, icon, account deletion, paywall provider, and sample copy; add the smallest release checks for placeholders that could ship silently.</p>
+  <p class="done"><b>Done when</b>A release build or readiness check names every unresolved production placeholder.</p>
+</article>
+<article class="item" data-scope="qa">
+  <div class="item-head"><h3>Audit one derived app against the canonical source</h3><div class="tags"><span class="scope scope-qa">QA</span><span class="state">Waiting</span></div></div>
+  <p><b>Next</b>Choose one recent derived app and compare its inherited shell, launch surfaces, performance package, tests, and intentional divergences.</p>
+  <p class="done"><b>Done when</b>The boilerplate backlog distinguishes missing canonical improvements from product-specific choices.</p>
+</article>
+<article class="item" data-scope="product">
+  <div class="item-head"><h3>Define how improvements flow back</h3><div class="tags"><span class="scope scope-product">Product</span><span class="state">Waiting</span></div></div>
+  <p><b>Next</b>Write the smallest rule for promoting a proven derived-app improvement into the boilerplate without making existing apps track it continuously.</p>
+  <p class="done"><b>Done when</b>The source of truth and adoption boundary are clear for one real improvement.</p>
+</article>
+<article class="item" data-scope="feature">
+  <div class="item-head"><h3>Prove one provider recipe</h3><div class="tags"><span class="scope scope-feature">Feature</span><span class="state">Waiting</span></div></div>
+  <p><b>Next</b>Select the most repeated provider setup and document a tested, removable integration recipe without making it a hard dependency.</p>
+  <p class="done"><b>Done when</b>A derived app can adopt or omit the provider through an explicit path.</p>
+</article></div>
+</section>
+<section class="lane lane-later">
+  <header><p class="lane-label">Later</p><h2>Visible, but intentionally parked.</h2><span class="count">3</span></header>
+  <div class="items"><article class="item" data-scope="feature">
+  <div class="item-head"><h3>Add a rename and bootstrap helper</h3><div class="tags"><span class="scope scope-feature">Feature</span><span class="state">Parked</span></div></div>
+  <p><b>Next</b>Automate only the manual steps that repeat across successful derivations.</p>
+  <p class="done"><b>Done when</b>The helper removes evidenced setup work without hiding configuration decisions.</p>
+</article>
+<article class="item" data-scope="feature">
+  <div class="item-head"><h3>Add optional provider starter recipes</h3><div class="tags"><span class="scope scope-feature">Feature</span><span class="state">Parked</span></div></div>
+  <p><b>Next</b>Expand beyond the first provider only after repeated use proves the recipe saves time.</p>
+  <p class="done"><b>Done when</b>Each recipe remains optional, tested, and removable.</p>
+</article>
+<article class="item" data-scope="product">
+  <div class="item-head"><h3>Revisit platform and deployment defaults</h3><div class="tags"><span class="scope scope-product">Product</span><span class="state">Parked</span></div></div>
+  <p><b>Next</b>Change iOS, Swift, or platform coverage only when an active product has a concrete compatibility need.</p>
+  <p class="done"><b>Done when</b>A real product requirement justifies the broader maintenance surface.</p>
+</article></div>
+</section></div>
+    <p class="rule">Every card has one priority lane and one scope. Move it when either changes. Current derivation evidence and source truth outrank an older card.</p>
+  </main>
+  <button id="review-toggle" type="button" aria-expanded="false" aria-controls="canvas-controls" aria-label="Open Board review controls">•••</button>
+  <nav id="canvas-controls" aria-label="Canvas review controls"><button type="button" data-action="fit">Fit</button><button type="button" data-action="width">Width</button><button type="button" data-action="out">−</button><output>100%</output><button type="button" data-action="in">+</button><button type="button" data-action="actual">100%</button><button type="button" data-action="reset">Reset</button><button type="button" data-action="theme">Light</button></nav>
+  <script id="memex-dom-canvas-adapter">
+  (()=>{if(window.__backlogBoardCanvas)return;window.__backlogBoardCanvas=true;const body=document.body,board=document.querySelector(".board"),viewport=document.createElement("div"),stage=document.createElement("div"),controls=document.getElementById("canvas-controls"),toggle=document.getElementById("review-toggle"),output=controls.querySelector("output");document.querySelectorAll("[data-scope-count]").forEach(counter=>{counter.textContent=document.querySelectorAll('.item[data-scope="'+counter.dataset.scopeCount+'"]').length});viewport.id="canvas-viewport";stage.id="canvas-stage";viewport.setAttribute("aria-label","Interactive iOS Boilerplate Backlog Board canvas");board.parentNode.insertBefore(viewport,board);stage.appendChild(board);viewport.appendChild(stage);document.documentElement.classList.add("canvas-active");let state={scale:1,x:0,y:0},drag=null,pinch=null;const points=new Map(),clamp=(v,min,max)=>Math.max(min,Math.min(max,v));function apply(){stage.style.transform="translate("+state.x+"px,"+state.y+"px) scale("+state.scale+")";output.textContent=Math.round(state.scale*100)+"%"}function dimensions(){return{w:board.offsetWidth,h:board.offsetHeight}}function fit(){const d=dimensions(),pad=24;state.scale=clamp(Math.min((viewport.clientWidth-pad*2)/d.w,(viewport.clientHeight-pad*2)/d.h),.12,1.2);state.x=(viewport.clientWidth-d.w*state.scale)/2;state.y=(viewport.clientHeight-d.h*state.scale)/2;apply()}function width(){const d=dimensions(),pad=24;state.scale=clamp((viewport.clientWidth-pad*2)/d.w,.12,1.5);state.x=(viewport.clientWidth-d.w*state.scale)/2;state.y=pad;apply()}function zoom(factor,cx=viewport.clientWidth/2,cy=viewport.clientHeight/2){const old=state.scale,next=clamp(old*factor,.12,2.5),wx=(cx-state.x)/old,wy=(cy-state.y)/old;state.scale=next;state.x=cx-wx*next;state.y=cy-wy*next;apply()}function reset(){state={scale:1,x:24,y:24};apply()}toggle.addEventListener("click",()=>{const open=!controls.classList.contains("open");controls.classList.toggle("open",open);toggle.setAttribute("aria-expanded",String(open));toggle.textContent=open?"×":"•••"});controls.addEventListener("click",event=>{const button=event.target.closest("button");if(!button)return;const action=button.dataset.action;if(action==="fit")fit();if(action==="width")width();if(action==="out")zoom(.82);if(action==="in")zoom(1.22);if(action==="actual"){state.scale=1;apply()}if(action==="reset")reset();if(action==="theme"){const light=document.documentElement.dataset.theme==="light";document.documentElement.dataset.theme=light?"dark":"light";button.textContent=light?"Light":"Dark"}});viewport.addEventListener("wheel",event=>{event.preventDefault();if(event.ctrlKey||event.metaKey)zoom(Math.exp(-event.deltaY*.002),event.clientX,event.clientY);else{state.x-=event.deltaX;state.y-=event.deltaY;apply()}},{passive:false});viewport.addEventListener("pointerdown",event=>{if(event.target.closest("a,button"))return;viewport.setPointerCapture(event.pointerId);points.set(event.pointerId,{x:event.clientX,y:event.clientY});if(points.size===1){drag={x:event.clientX,y:event.clientY,ox:state.x,oy:state.y};viewport.classList.add("panning")}if(points.size===2){const p=[...points.values()];pinch={distance:Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y),scale:state.scale,cx:(p[0].x+p[1].x)/2,cy:(p[0].y+p[1].y)/2};drag=null}});viewport.addEventListener("pointermove",event=>{if(!points.has(event.pointerId))return;points.set(event.pointerId,{x:event.clientX,y:event.clientY});if(points.size===1&&drag){state.x=drag.ox+event.clientX-drag.x;state.y=drag.oy+event.clientY-drag.y;apply()}if(points.size===2&&pinch){const p=[...points.values()],distance=Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y),target=clamp(pinch.scale*(distance/pinch.distance),.12,2.5);zoom(target/state.scale,pinch.cx,pinch.cy)}});function endPointer(event){points.delete(event.pointerId);drag=null;pinch=null;viewport.classList.remove("panning");if(points.size===1){const p=[...points.values()][0];drag={x:p.x,y:p.y,ox:state.x,oy:state.y}}}viewport.addEventListener("pointerup",endPointer);viewport.addEventListener("pointercancel",endPointer);let gestureScale=1;viewport.addEventListener("gesturestart",event=>{event.preventDefault();gestureScale=state.scale},{passive:false});viewport.addEventListener("gesturechange",event=>{event.preventDefault();zoom((gestureScale*event.scale)/state.scale,event.clientX,event.clientY)},{passive:false});viewport.addEventListener("gestureend",event=>event.preventDefault(),{passive:false});window.addEventListener("hostgesturetransform",event=>{const detail=event.detail||{};if(typeof detail.scale==="number")zoom(detail.scale,state.x+(detail.x||viewport.clientWidth/2),state.y+(detail.y||viewport.clientHeight/2))});window.addEventListener("resize",fit);requestAnimationFrame(fit)})();
+  </script>
+</body>
+</html>

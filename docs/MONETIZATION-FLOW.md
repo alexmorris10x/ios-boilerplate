@@ -84,9 +84,10 @@ current anonymous RevenueCat record is inactive:
   unverified or interrupted scan preserves prior positive evidence.
 - StoreKit never vetoes an active RevenueCat entitlement.
 
-The canonical decision record lives in the 10x-os iOS Boilerplate
-`Subscription Access SOP`. This repository includes the state machine and the
-RevenueCat adapter so a derived app starts with one working ownership model.
+The canonical decision record is the repository's
+[Subscription Access SOP](SUBSCRIPTION-ACCESS-SOP.md). This repository includes
+the state machine and the RevenueCat adapter so a derived app starts with one
+working ownership model.
 
 ## Trial Wording
 
