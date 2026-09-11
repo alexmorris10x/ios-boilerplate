@@ -6,7 +6,7 @@ This file applies to the entire `ios-boilerplate` repository.
 
 - Canonical product and technical documentation: `docs/`
 - Read `docs/product/Product Context Brief.md` before substantive product decisions.
-- Keep dated work packets and temporary evidence in the owning numbered `10x-os` department.
+- Keep dated work packets and temporary evidence in dated Google Drive folders following the central Google Drive `AGENTS.md`.
 
 ## Repository map
 
