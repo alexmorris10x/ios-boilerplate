@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Card styling modifier
 struct CardModifier: ViewModifier {
+
     // MARK: - Properties
 
     let backgroundColor: Color
@@ -17,10 +18,10 @@ struct CardModifier: ViewModifier {
 
     init(
         backgroundColor: Color = AppTheme.Colors.secondaryBackground,
-        cornerRadius: CGFloat = UIConstants.CornerRadius.large,
-        shadowRadius: CGFloat = UIConstants.Shadow.medium,
-        padding: EdgeInsets = UIConstants.Padding.cardInsets
-    ) {
+        cornerRadius: CGFloat = ComponentTokens.Card.cornerRadius,
+        shadowRadius: CGFloat = ComponentTokens.Card.shadowRadius,
+        padding: EdgeInsets = ComponentTokens.Card.padding)
+    {
         self.backgroundColor = backgroundColor
         self.cornerRadius = cornerRadius
         self.shadowRadius = shadowRadius
@@ -34,18 +35,21 @@ struct CardModifier: ViewModifier {
             .padding(padding)
             .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(AppTheme.Colors.separator, lineWidth: ComponentTokens.Card.borderWidth)
+            }
             .shadow(
                 color: shadowColor,
                 radius: shadowRadius,
-                x: 0,
-                y: 2
-            )
+                x: ComponentTokens.Card.shadowOffset.width,
+                y: ComponentTokens.Card.shadowOffset.height)
     }
 
     // MARK: - Computed Properties
 
     private var shadowColor: Color {
-        colorScheme == .dark ? .clear : .black.opacity(0.1)
+        ComponentTokens.Card.shadowColor(for: colorScheme)
     }
 }
 
@@ -55,34 +59,33 @@ extension View {
     /// Apply card styling
     func cardStyle(
         backgroundColor: Color = AppTheme.Colors.secondaryBackground,
-        cornerRadius: CGFloat = UIConstants.CornerRadius.large,
-        shadowRadius: CGFloat = UIConstants.Shadow.medium,
-        padding: EdgeInsets = UIConstants.Padding.cardInsets
-    ) -> some View {
+        cornerRadius: CGFloat = ComponentTokens.Card.cornerRadius,
+        shadowRadius: CGFloat = ComponentTokens.Card.shadowRadius,
+        padding: EdgeInsets = ComponentTokens.Card.padding) -> some View
+    {
         modifier(CardModifier(
             backgroundColor: backgroundColor,
             cornerRadius: cornerRadius,
             shadowRadius: shadowRadius,
-            padding: padding
-        ))
+            padding: padding))
     }
 
     /// Apply minimal card styling (no shadow)
     func cardStyleMinimal(
         backgroundColor: Color = AppTheme.Colors.secondaryBackground,
-        cornerRadius: CGFloat = UIConstants.CornerRadius.large
-    ) -> some View {
+        cornerRadius: CGFloat = ComponentTokens.Card.cornerRadius) -> some View
+    {
         modifier(CardModifier(
             backgroundColor: backgroundColor,
             cornerRadius: cornerRadius,
-            shadowRadius: 0
-        ))
+            shadowRadius: 0))
     }
 }
 
 // MARK: - Interactive Card Modifier
 
 struct InteractiveCardModifier: ViewModifier {
+
     // MARK: - Properties
 
     let isSelected: Bool
@@ -100,21 +103,19 @@ struct InteractiveCardModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .padding(UIConstants.Padding.cardInsets)
+            .padding(ComponentTokens.Card.padding)
             .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: UIConstants.CornerRadius.large))
+            .clipShape(RoundedRectangle(cornerRadius: ComponentTokens.Card.cornerRadius))
             .overlay(
-                RoundedRectangle(cornerRadius: UIConstants.CornerRadius.large)
-                    .stroke(borderColor, lineWidth: isSelected ? 2 : 0)
-            )
+                RoundedRectangle(cornerRadius: ComponentTokens.Card.cornerRadius)
+                    .stroke(borderColor, lineWidth: isSelected ? UIConstants.Border.thick : 0))
             .shadow(
                 color: shadowColor,
-                radius: UIConstants.Shadow.medium,
-                x: 0,
-                y: 2
-            )
-            .scaleEffect(isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: isPressed)
+                radius: ComponentTokens.Card.shadowRadius,
+                x: ComponentTokens.Card.shadowOffset.width,
+                y: ComponentTokens.Card.shadowOffset.height)
+            .scaleEffect(isPressed ? ComponentTokens.Button.pressedScale : 1.0)
+            .animation(ComponentTokens.Motion.press, value: isPressed)
             .onTapGesture {
                 HapticService.shared.lightImpact()
                 onTap()
@@ -122,8 +123,7 @@ struct InteractiveCardModifier: ViewModifier {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in isPressed = true }
-                    .onEnded { _ in isPressed = false }
-            )
+                    .onEnded { _ in isPressed = false })
     }
 
     // MARK: - Computed Properties
@@ -139,7 +139,7 @@ struct InteractiveCardModifier: ViewModifier {
     }
 
     private var shadowColor: Color {
-        colorScheme == .dark ? .clear : .black.opacity(0.1)
+        ComponentTokens.Card.shadowColor(for: colorScheme)
     }
 }
 

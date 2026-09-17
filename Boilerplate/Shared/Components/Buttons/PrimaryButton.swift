@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Primary action button with optional loading state and icon
 struct PrimaryButton: View {
+
     // MARK: - Properties
 
     let title: String
@@ -39,13 +40,13 @@ struct PrimaryButton: View {
             }
             .foregroundStyle(.white)
             .frame(maxWidth: isFullWidth ? .infinity : nil)
-            .frame(height: UIConstants.ButtonSize.medium)
-            .padding(.horizontal, isFullWidth ? 0 : UIConstants.Spacing.lg)
+            .frame(height: ComponentTokens.Button.height)
+            .padding(.horizontal, isFullWidth ? 0 : ComponentTokens.Button.horizontalPadding)
             .background(
-                RoundedRectangle(cornerRadius: UIConstants.CornerRadius.medium)
-                    .fill(backgroundColor)
-            )
+                RoundedRectangle(cornerRadius: ComponentTokens.Button.cornerRadius)
+                    .fill(backgroundColor))
         }
+        .buttonStyle(.plain)
         .disabled(isLoading)
     }
 
@@ -53,9 +54,9 @@ struct PrimaryButton: View {
 
     private var backgroundColor: Color {
         if !isEnabled {
-            return .gray
+            return AppTheme.Colors.primary.opacity(ComponentTokens.Button.disabledOpacity)
         }
-        return .accentColor
+        return AppTheme.Colors.primary
     }
 }
 

@@ -21,7 +21,8 @@ Every pattern in this boilerplate exists for a reason. This documentation explai
 | Networking | Protocol-based async/await | Testable, modern, no callback hell |
 | Persistence | SwiftData + Keychain + UserDefaults | Right tool for each data type |
 | Navigation | Type-safe Router | Compile-time safety, deep linking ready |
-| UI Components | Composable SwiftUI views | Reusable, consistent, maintainable |
+| Native UI quality | Tokens + Design System Gallery + parity workflow | Repeatable visual craft and inspection |
+| UI Components | Composable SwiftUI views | Reusable, independently previewable, maintainable |
 | Testing | Swift Testing + mocks | Apple's modern testing framework |
 | Code Quality | SwiftLint + SwiftFormat | Consistent style, catch bugs early |
 | Project Generation | XcodeGen | Buildable project without committing `.xcodeproj` churn |
@@ -68,6 +69,7 @@ Then:
 | [docs/MONETIZATION-FLOW.md](docs/MONETIZATION-FLOW.md) | Purchase flow, RevenueCat/Test Store, and App Store readiness runbook |
 | [docs/PRODUCTION-READINESS-CHECKLIST.md](docs/PRODUCTION-READINESS-CHECKLIST.md) | SOP for app launch readiness |
 | [docs/XCODE-CLOUD-WORKFLOW.md](docs/XCODE-CLOUD-WORKFLOW.md) | CI/versioning runbook for Xcode Cloud |
+| [docs/NATIVE-UI-QUALITY-SYSTEM.md](docs/NATIVE-UI-QUALITY-SYSTEM.md) | Tokens, native workbench, visual parity, and acceptance workflow |
 
 ---
 
@@ -78,7 +80,7 @@ ios-boilerplate/
 ├── Boilerplate/
 │   ├── App/                    # App entry point and configuration
 │   ├── Core/                   # Infrastructure (networking, persistence, etc.)
-│   ├── Shared/                 # Reusable code (components, extensions, etc.)
+│   ├── Shared/                 # Design system, components, extensions, and styles
 │   ├── Features/               # Feature modules (auth, settings, etc.)
 │   └── Resources/              # Assets, localization, Info.plist
 ├── BoilerplateTests/           # Unit tests
